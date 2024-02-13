@@ -47,6 +47,8 @@ function calculateOptimalBankroll(initialBankroll, growthRate, numberOfBets) {
 
 function App() {
   const [bankroll, setBankroll] = useState(1000);
+  const [pendingKellyBankroll, setPendingKellyBankroll] = useState(1000);
+  const [kellyBankroll, setKellyBankroll] = useState(1000);
   const [pendingBankroll, setPendingBankroll] = useState(1000);
   const [probability, setProbability] = useState(0.5);
   const [payout, setPayout] = useState(2);
@@ -57,10 +59,10 @@ function App() {
   const [kellyBet, setKellyBet] = useState(0); // Add state for Kelly bet
   const [kellyFraction, setKellyFraction] = useState(0); // Add state for Kelly bet
   const [roundFinished, setRoundFinished] = useState(false); // Add state to track if the round is finished
-  const [growthRate, setGrowthRate] = useState(Math.random() * 0.05 + 0.05);
   const [betResult, setBetResult] = useState('');
 
   useEffect(() => {
+    console.log("effect");
     generateRandomBetConditions();
   }, []);
 
@@ -70,9 +72,15 @@ function App() {
     let r = Math.random();
     const w = r < newProbability;
     setIsWin(w);
-    const b = binarySearchForB(newProbability, growthRate); // Calculate payout targeting the growth rate
+    let G = Math.random() * 0.08 + 0.0001;
+    const b = binarySearchForB(newProbability, G); // Calculate payout targeting the growth rate
     setPayout(b + 1); // Adjust payout to match the betting interface expectations
     const k = kelly(b, newProbability);
+    if (w) {
+        setPendingKellyBankroll(pendingKellyBankroll + pendingKellyBankroll * k * b);
+    } else {
+        setPendingKellyBankroll(pendingKellyBankroll - pendingKellyBankroll * k);
+    }
     setKellyFraction(k);
     setKellyBet(k * pendingBankroll); // Calculate and set the Kelly bet
     setRoundFinished(false); // Reset for the new round
@@ -99,12 +107,13 @@ function App() {
   const startNewRound = () => {
     setUserBet(0);
     setBankroll(pendingBankroll);
+    setKellyBankroll(pendingKellyBankroll);
     setBetResult('neutral');
     setMessage('Good Luck');
     generateRandomBetConditions(); // Start a new round with fresh conditions
   };
 
-  const optimalBankroll = calculateOptimalBankroll(1000.0, growthRate, betCount);
+  const optimalBankroll = calculateOptimalBankroll(1000.0, 0.04, betCount);
   const resultClass = betResult === 'win' ? 'backgroundWin' : betResult === 'lose' ? 'backgroundLose' : 'backgroundNeutral';
 
 
