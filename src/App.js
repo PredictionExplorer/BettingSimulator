@@ -70,7 +70,7 @@ function App() {
     setPayout(b + 1); // Adjust payout to match the betting interface expectations
     const k = kelly(b, newProbability);
     setKellyFraction(k);
-    setKellyBet(k * bankroll); // Calculate and set the Kelly bet
+    setKellyBet(k * pendingBankroll); // Calculate and set the Kelly bet
     setRoundFinished(false); // Reset for the new round
   };
 
