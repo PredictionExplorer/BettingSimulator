@@ -27,7 +27,6 @@ function binarySearchForB(p, G) {
     i += 1;
     if (i > 100) break;
     diff = Math.abs(g - G);
-    console.log(`Mid: ${mid}, Growth Rate: ${g}, Lower Bound: ${lowerBound}, Upper Bound: ${upperBound},  Diff: ${diff}`);
     mid = (lowerBound + upperBound) / 2;
     g = growthRate(mid, p);
     if (g < G) {
@@ -55,6 +54,7 @@ function App() {
   const [betCount, setBetCount] = useState(0);
   const [message, setMessage] = useState('');
   const [kellyBet, setKellyBet] = useState(0); // Add state for Kelly bet
+  const [kellyFraction, setKellyFraction] = useState(0); // Add state for Kelly bet
   const [roundFinished, setRoundFinished] = useState(false); // Add state to track if the round is finished
   const [growthRate, setGrowthRate] = useState(Math.random() * 0.05 + 0.05);
   const [betResult, setBetResult] = useState('');
@@ -65,11 +65,12 @@ function App() {
 
   const generateRandomBetConditions = () => {
     const newProbability = Math.random() * 0.9 + 0.05; // Random probability between 5% and 95%
-    const b = binarySearchForB(newProbability, growthRate); // Calculate payout targeting the growth rate
     setProbability(newProbability);
+    const b = binarySearchForB(newProbability, growthRate); // Calculate payout targeting the growth rate
     setPayout(b + 1); // Adjust payout to match the betting interface expectations
-    const kellyFraction = kelly(b, newProbability);
-    setKellyBet(kellyFraction * bankroll); // Calculate and set the Kelly bet
+    const k = kelly(b, newProbability);
+    setKellyFraction(k);
+    setKellyBet(k * bankroll); // Calculate and set the Kelly bet
     setRoundFinished(false); // Reset for the new round
   };
 
@@ -84,7 +85,7 @@ function App() {
         let newBankroll = bankroll - userBet + (win ? userBet * payout : 0);
         setPendingBankroll(newBankroll);
         setBetCount(betCount + 1);
-        setMessage(`You ${win ? "won" : "lost"}! New bankroll: $${newBankroll.toFixed(2)}. Correct Kelly Bet was: $${kellyBet.toFixed(2)}`);
+        setMessage(`You ${win ? "won" : "lost"}! New bankroll: $${newBankroll.toFixed(2)}. Correct Kelly Bet was: $${kellyBet.toFixed(2)} (${(kellyFraction * 100).toFixed(2)}%)`);
         setRoundFinished(true); // Mark the current round as finished
     } else {
       startNewRound(); // If the round is finished, start a new round
