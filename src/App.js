@@ -115,7 +115,7 @@ function App() {
           <p>Probability of winning: {(probability * 100).toFixed(2)}%</p>
         </div>
         <div>
-          <p>Payout on win: {payout.toFixed(2)}x the bet (including your bet)</p>
+          <p>Payout on win: {payout.toFixed(2)}x the bet (${(payout * userBet).toFixed(2)}) (including your bet)</p>
         </div>
         <div>
           <label>Your bet: ${userBet.toFixed(2)} ({((userBet / bankroll) * 100).toFixed(2)}% of bankroll)</label>
