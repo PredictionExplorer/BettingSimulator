@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 
 function kelly(b, p) {
@@ -22,11 +22,9 @@ function binarySearchForB(p, G) {
   let lowerBound = 1e-6;
   let upperBound = 1e6;
   let i=0;
-  let diff = -1;
   while (Math.abs(g - G) > 1e-6) {
     i += 1;
     if (i > 100) break;
-    diff = Math.abs(g - G);
     mid = (lowerBound + upperBound) / 2;
     g = growthRate(mid, p);
     if (g < G) {
@@ -46,102 +44,95 @@ function calculateOptimalBankroll(initialBankroll, growthRate, numberOfBets) {
 }
 
 function App() {
-  const [bankroll, setBankroll] = useState(1000);
-  const [pendingKellyBankroll, setPendingKellyBankroll] = useState(1000);
-  const [kellyBankroll, setKellyBankroll] = useState(1000);
-  const [pendingBankroll, setPendingBankroll] = useState(1000);
-  const [probability, setProbability] = useState(0.5);
-  const [payout, setPayout] = useState(2);
-  const [isWin, setIsWin] = useState(false);
-  const [userBet, setUserBet] = useState(0);
-  const [betCount, setBetCount] = useState(0);
-  const [message, setMessage] = useState('');
-  const [kellyBet, setKellyBet] = useState(0); // Add state for Kelly bet
-  const [kellyFraction, setKellyFraction] = useState(0); // Add state for Kelly bet
-  const [roundFinished, setRoundFinished] = useState(false); // Add state to track if the round is finished
-  const [betResult, setBetResult] = useState('');
+  const bankroll = useRef(1000);
+  const optimalBankroll = useRef(1000);
+  const probability = useRef(0.5);
+  const payout = useRef(2);
+  const betCount = useRef(0);
+
+  const [betCountUI, setBetCountUI] = useState(0);
+  const [payoutUI, setPayoutUI] = useState(0);
+  const [bankrollUI, setBankrollUI] = useState(1000);
+  const [optimalBankrollUI, setOptimalBankrollUI] = useState(1000);
+  const [messageUI, setMessageUI] = useState(1000);
+  const [probabilityUI, setProbabilityUI] = useState(0.5);
+  const [betResultUI, setBetResultUI] = useState("neutral");
+  const [userBetUI, setUserBetUI] = useState(0);
 
   useEffect(() => {
-    console.log("effect");
-    generateRandomBetConditions();
+    startNewRound();
   }, []);
 
-  const generateRandomBetConditions = () => {
-    const newProbability = Math.random() * 0.9 + 0.05; // Random probability between 5% and 95%
-    setProbability(newProbability);
-    let r = Math.random();
-    const w = r < newProbability;
-    setIsWin(w);
-    let G = Math.random() * 0.08 + 0.0001;
-    const b = binarySearchForB(newProbability, G); // Calculate payout targeting the growth rate
-    setPayout(b + 1); // Adjust payout to match the betting interface expectations
-    const k = kelly(b, newProbability);
-    if (w) {
-        setPendingKellyBankroll(pendingKellyBankroll + pendingKellyBankroll * k * b);
-    } else {
-        setPendingKellyBankroll(pendingKellyBankroll - pendingKellyBankroll * k);
-    }
-    setKellyFraction(k);
-    setKellyBet(k * pendingBankroll); // Calculate and set the Kelly bet
-    setRoundFinished(false); // Reset for the new round
-  };
-
   const handleBet = () => {
-    if (!roundFinished) {
-        if (isWin) {
-          setBetResult('win');
+    if (betResultUI === "neutral") {
+        let betResult;
+        let bankrollTmp = bankroll.current;
+        let kellyBet = kelly(payout.current, probability.current);
+        if (Math.random() < probability.current) {
+          betResult = 'win';
+          bankroll.current += userBetUI * payout.current;
+          console.log("kellyBet", kellyBet, "optimalBank", optimalBankroll.current, 'payout', payout.current);
+          optimalBankroll.current += kellyBet * optimalBankroll.current * payout.current;
         } else {
-          setBetResult('lose');
+          betResult = 'lose';
+          bankroll.current -= userBetUI;
+          console.log("kellyBet", kellyBet, "optimalBank", optimalBankroll.current);
+          optimalBankroll.current -= kellyBet * optimalBankroll.current;
         }
-        let newBankroll = bankroll - userBet + (isWin ? userBet * payout : 0);
-        setPendingBankroll(newBankroll);
-        setBetCount(betCount + 1);
-        setMessage(`You ${isWin ? "won" : "lost"}! New bankroll: $${newBankroll.toFixed(2)}. Correct Kelly Bet was: $${kellyBet.toFixed(2)} (${(kellyFraction * 100).toFixed(2)}%)`);
-        setRoundFinished(true); // Mark the current round as finished
+        betCount.current += 1;
+        setBetResultUI(betResult);
+        setMessageUI(`You ${betResult === "win" ? "won" : "lost"}! New bankroll: $${bankroll.current.toFixed(2)}. Correct Kelly Bet was: $${(kellyBet * bankrollTmp).toFixed(2)} (${(kellyBet * 100).toFixed(2)}%)`);
     } else {
-      startNewRound(); // If the round is finished, start a new round
+      startNewRound();
     }
-
   };
 
   const startNewRound = () => {
-    setUserBet(0);
-    setBankroll(pendingBankroll);
-    setKellyBankroll(pendingKellyBankroll);
-    setBetResult('neutral');
-    setMessage('Good Luck');
-    generateRandomBetConditions(); // Start a new round with fresh conditions
+    probability.current = Math.random() * 0.9 + 0.05;
+    let G = Math.random() * 0.02 + 0.0001;
+    while(true) {
+        payout.current = binarySearchForB(probability.current, G);
+        if (payout.current > 0) break
+    }
+    console.log('G', G, 'payout', payout.current);
+    setUserBetUI(0);
+    setBankrollUI(bankroll.current);
+    setOptimalBankrollUI(optimalBankroll.current);
+    setProbabilityUI(probability.current);
+    setPayoutUI(payout.current + 1);
+    setBetResultUI('neutral');
+    setMessageUI('Good Luck');
+    setBetCountUI(betCount.current);
   };
 
-  const optimalBankroll = calculateOptimalBankroll(1000.0, 0.04, betCount);
-  const resultClass = betResult === 'win' ? 'backgroundWin' : betResult === 'lose' ? 'backgroundLose' : 'backgroundNeutral';
-
+  const resultClass = betResultUI === 'win' ? 'backgroundWin' : betResultUI === 'lose' ? 'backgroundLose' : 'backgroundNeutral';
 
   return (
     <div className={`BettingApp ${resultClass}`}>
       <header className="App-header">
         <h1>Betting Simulator</h1>
-        <p>Your bankroll: ${bankroll.toFixed(2)}</p>
-        <p>Optimal Bankroll after {betCount} bets: ${optimalBankroll.toFixed(2)}</p>
+        <p>Your bankroll: ${bankrollUI.toFixed(2)}</p>
+        <p>Number of bets: {betCountUI}</p>
+        <p>Optimal bankroll: ${optimalBankrollUI.toFixed(2)}</p>
         <div>
-          <p>Probability of winning: {(probability * 100).toFixed(2)}%</p>
+          <p>Probability of winning: {(probabilityUI * 100).toFixed(2)}%</p>
         </div>
         <div>
-          <p>Payout on win: {payout.toFixed(2)}x the bet (${(payout * userBet).toFixed(2)}) (including your bet) ({(100.0 / payout).toFixed(2)}% implied odds)</p>
+          <p>Payout on win: {payoutUI.toFixed(2)}x the bet (${(payoutUI * userBetUI).toFixed(2)}) (including your bet) ({(100.0 / payoutUI).toFixed(2)}% implied odds)</p>
         </div>
         <div>
-          <label>Your bet: ${userBet.toFixed(2)} ({((userBet / bankroll) * 100).toFixed(2)}% of bankroll)</label>
+          <label>Your bet: ${userBetUI.toFixed(2)} ({((userBetUI / bankrollUI) * 100).toFixed(2)}% of bankroll)</label>
           <input
             type="range"
             min="0"
-            max={bankroll}
-            value={userBet}
-            onChange={(e) => setUserBet(parseFloat(e.target.value))}
+            max={bankrollUI}
+            value={userBetUI}
+            onChange={(e) => setUserBetUI(parseFloat(e.target.value))}
             className="slider"
           />
         </div>
-        <button className="betButton" onClick={handleBet}>{roundFinished ? "Next Bet" : "Bet"}</button>
-        <p>{message}</p>
+        <button className="betButton" onClick={handleBet}>{betResultUI !== "neutral" ? "Next Bet" : "Bet"}</button>
+        <p>{messageUI}</p>
       </header>
     </div>
   );
