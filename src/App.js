@@ -124,7 +124,7 @@ function App() {
             max={bankroll}
             value={userBet}
             onChange={(e) => setUserBet(parseFloat(e.target.value))}
-            style={{ width: "80%" }} // Make the slider wider
+            className="slider"
           />
         </div>
         <button className="betButton" onClick={handleBet}>{roundFinished ? "Next Bet" : "Bet"}</button>
