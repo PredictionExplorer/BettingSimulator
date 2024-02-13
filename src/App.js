@@ -117,7 +117,7 @@ function App() {
             style={{ width: "80%" }} // Make the slider wider
           />
         </div>
-        <button onClick={handleBet}>{roundFinished ? "Next Bet" : "Bet"}</button>
+        <button className="betButton" onClick={handleBet}>{roundFinished ? "Next Bet" : "Bet"}</button>
         <p>{message}</p>
       </header>
     </div>

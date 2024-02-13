@@ -2,6 +2,25 @@
   text-align: center;
 }
 
+.betButton {
+  background-color: #28a745; /* Green, consider a color that fits your app theme */
+  color: white;
+  padding: 12px 24px; /* Adjust size to your preference */
+  font-size: 18px; /* Makes text larger */
+  border: 2px solid transparent; /* Adds a border that blends into the button, change as needed */
+  border-radius: 5px; /* Rounded corners for a modern look */
+  cursor: pointer; /* Changes cursor to pointer to indicate it's clickable */
+  transition: background-color 0.2s, transform 0.2s; /* Smooth transition for hover and click */
+}
+
+.betButton:hover {
+  background-color: #218838; /* Darker shade of green on hover */
+}
+
+.betButton:active {
+  transform: scale(0.98); /* Slightly shrinks the button when clicked */
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;
