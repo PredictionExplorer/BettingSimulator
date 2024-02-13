@@ -50,6 +50,7 @@ function App() {
   const [pendingBankroll, setPendingBankroll] = useState(1000);
   const [probability, setProbability] = useState(0.5);
   const [payout, setPayout] = useState(2);
+  const [isWin, setIsWin] = useState(false);
   const [userBet, setUserBet] = useState(0);
   const [betCount, setBetCount] = useState(0);
   const [message, setMessage] = useState('');
@@ -66,6 +67,9 @@ function App() {
   const generateRandomBetConditions = () => {
     const newProbability = Math.random() * 0.9 + 0.05; // Random probability between 5% and 95%
     setProbability(newProbability);
+    let r = Math.random();
+    const w = r < newProbability;
+    setIsWin(w);
     const b = binarySearchForB(newProbability, growthRate); // Calculate payout targeting the growth rate
     setPayout(b + 1); // Adjust payout to match the betting interface expectations
     const k = kelly(b, newProbability);
@@ -76,16 +80,15 @@ function App() {
 
   const handleBet = () => {
     if (!roundFinished) {
-        const win = Math.random() < probability;
-        if (win) {
+        if (isWin) {
           setBetResult('win');
         } else {
           setBetResult('lose');
         }
-        let newBankroll = bankroll - userBet + (win ? userBet * payout : 0);
+        let newBankroll = bankroll - userBet + (isWin ? userBet * payout : 0);
         setPendingBankroll(newBankroll);
         setBetCount(betCount + 1);
-        setMessage(`You ${win ? "won" : "lost"}! New bankroll: $${newBankroll.toFixed(2)}. Correct Kelly Bet was: $${kellyBet.toFixed(2)} (${(kellyFraction * 100).toFixed(2)}%)`);
+        setMessage(`You ${isWin ? "won" : "lost"}! New bankroll: $${newBankroll.toFixed(2)}. Correct Kelly Bet was: $${kellyBet.toFixed(2)} (${(kellyFraction * 100).toFixed(2)}%)`);
         setRoundFinished(true); // Mark the current round as finished
     } else {
       startNewRound(); // If the round is finished, start a new round
