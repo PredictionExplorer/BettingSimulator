@@ -56,6 +56,7 @@ function App() {
   const [kellyBet, setKellyBet] = useState(0); // Add state for Kelly bet
   const [roundFinished, setRoundFinished] = useState(false); // Add state to track if the round is finished
   const [growthRate, setGrowthRate] = useState(Math.random() * 0.05 + 0.05);
+  const [betResult, setBetResult] = useState('');
 
   useEffect(() => {
     generateRandomBetConditions();
@@ -74,6 +75,11 @@ function App() {
   const handleBet = () => {
     if (!roundFinished) {
         const win = Math.random() < probability;
+        if (win) {
+          setBetResult('win');
+        } else {
+          setBetResult('lose');
+        }
         let newBankroll = bankroll - userBet + (win ? userBet * payout : 0);
         setBankroll(newBankroll);
         setBetCount(betCount + 1);
@@ -87,15 +93,17 @@ function App() {
 
   const startNewRound = () => {
     setUserBet(0);
+    setBetResult('neutral');
     setMessage('Good Luck');
     generateRandomBetConditions(); // Start a new round with fresh conditions
   };
 
   const optimalBankroll = calculateOptimalBankroll(1000.0, growthRate, betCount);
+  const resultClass = betResult === 'win' ? 'backgroundWin' : betResult === 'lose' ? 'backgroundLose' : 'backgroundNeutral';
 
 
   return (
-    <div className="App">
+    <div className={`BettingApp ${resultClass}`}>
       <header className="App-header">
         <h1>Betting Simulator</h1>
         <p>Your bankroll: ${bankroll.toFixed(2)}</p>

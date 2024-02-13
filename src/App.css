@@ -3,7 +3,7 @@
 }
 
 .betButton {
-  background-color: #28a745; /* Green, consider a color that fits your app theme */
+  background-color: #007bff;
   color: white;
   padding: 12px 24px; /* Adjust size to your preference */
   font-size: 18px; /* Makes text larger */
@@ -21,6 +21,18 @@
   transform: scale(0.98); /* Slightly shrinks the button when clicked */
 }
 
+.backgroundWin {
+  background-color: #003300; /* A soft green */
+}
+
+.backgroundLose {
+  background-color: #4C0000; /* A soft red */
+}
+
+.backgroundNeutral {
+  background-color: #282c34;
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;
@@ -33,7 +45,6 @@
 }
 
 .App-header {
-  background-color: #282c34;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
