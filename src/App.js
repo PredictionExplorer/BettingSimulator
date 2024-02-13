@@ -48,6 +48,7 @@ function calculateOptimalBankroll(initialBankroll, growthRate, numberOfBets) {
 
 function App() {
   const [bankroll, setBankroll] = useState(1000);
+  const [pendingBankroll, setPendingBankroll] = useState(1000);
   const [probability, setProbability] = useState(0.5);
   const [payout, setPayout] = useState(2);
   const [userBet, setUserBet] = useState(0);
@@ -81,7 +82,7 @@ function App() {
           setBetResult('lose');
         }
         let newBankroll = bankroll - userBet + (win ? userBet * payout : 0);
-        setBankroll(newBankroll);
+        setPendingBankroll(newBankroll);
         setBetCount(betCount + 1);
         setMessage(`You ${win ? "won" : "lost"}! New bankroll: $${newBankroll.toFixed(2)}. Correct Kelly Bet was: $${kellyBet.toFixed(2)}`);
         setRoundFinished(true); // Mark the current round as finished
@@ -93,6 +94,7 @@ function App() {
 
   const startNewRound = () => {
     setUserBet(0);
+    setBankroll(pendingBankroll);
     setBetResult('neutral');
     setMessage('Good Luck');
     generateRandomBetConditions(); // Start a new round with fresh conditions
