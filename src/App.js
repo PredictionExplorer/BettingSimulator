@@ -55,7 +55,7 @@ function App() {
   const [message, setMessage] = useState('');
   const [kellyBet, setKellyBet] = useState(0); // Add state for Kelly bet
   const [roundFinished, setRoundFinished] = useState(false); // Add state to track if the round is finished
-  const [growthRate, setGrowthRate] = useState(Math.random() * 0.05 + 0.05);
+  const growthRate = useState(Math.random() * 0.05 + 0.05);
 
   useEffect(() => {
     generateRandomBetConditions();
