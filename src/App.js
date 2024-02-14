@@ -72,16 +72,22 @@ function App() {
     }).catch(err => console.error("Error initializing Wasm module:", err));
   }, []);
 
-  const callRustFunction = async () => {
-    const floats = [0.8, 0.5];
-    const inputJson = JSON.stringify(floats);
+  const multi_kelly = (input) => {
+    const inputJson = JSON.stringify(input);
 
     const rustString = multiple_kelly(inputJson);
-    console.log(rustString);
+    let proportions = JSON.parse(rustString);
+    let growth = proportions.pop();
+    return {
+        proportions: proportions,
+        growth: growth
+    }
   };
 
   const handleBet = () => {
-    callRustFunction();
+    const input = [0.8, 1.9, 0.2, 10.0];
+    let m = multi_kelly(input);
+
     if (betResultUI === "neutral") {
         let betResult;
         let bankrollTmp = bankroll.current;
@@ -103,6 +109,7 @@ function App() {
     } else {
       startNewRound();
     }
+    setMessageUI(m.growth);
   };
 
   const startNewRound = () => {
