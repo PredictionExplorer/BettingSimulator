@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import init, { multiple_kelly } from './pkg/kelly_sim';
 import './App.css';
 
 function kelly(b, p) {
@@ -59,11 +60,28 @@ function App() {
   const [betResultUI, setBetResultUI] = useState("neutral");
   const [userBetUI, setUserBetUI] = useState(0);
 
+  const [isWasmReady, setWasmReady] = useState(false);
+
   useEffect(() => {
     startNewRound();
   }, []);
 
+  useEffect(() => {
+    init().then(() => {
+      setWasmReady(true);
+    }).catch(err => console.error("Error initializing Wasm module:", err));
+  }, []);
+
+  const callRustFunction = async () => {
+    const floats = [0.8, 0.5];
+    const inputJson = JSON.stringify(floats);
+
+    const rustString = multiple_kelly(inputJson);
+    console.log(rustString);
+  };
+
   const handleBet = () => {
+    callRustFunction();
     if (betResultUI === "neutral") {
         let betResult;
         let bankrollTmp = bankroll.current;

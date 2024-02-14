@@ -4,13 +4,11 @@
   "files": [
     "kelly_sim_bg.wasm",
     "kelly_sim.js",
-    "kelly_sim_bg.js",
     "kelly_sim.d.ts"
   ],
   "module": "kelly_sim.js",
   "types": "kelly_sim.d.ts",
   "sideEffects": [
-    "./kelly_sim.js",
     "./snippets/*"
   ]
 }
