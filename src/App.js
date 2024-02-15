@@ -93,7 +93,7 @@ function App() {
   const [optimalBankrollUI, setOptimalBankrollUI] = useState(1000);
   const [messageUI, setMessageUI] = useState(1000);
   const [probabilityUI, setProbabilityUI] = useState(0.5);
-  const [betResultUI, setBetResultUI] = useState("neutral");
+  const [gameState, setGameState] = useState("showBet");
   const [userBetUI, setUserBetUI] = useState(0);
 
   const [isWasmReady, setWasmReady] = useState(false);
@@ -107,15 +107,10 @@ function App() {
     console.log(bets);
   };
 
-    /*
-  useEffect(() => {
-    startNewRound();
-  }, []);
-  */
-
   useEffect(() => {
     init().then(() => {
       setWasmReady(true);
+      generateBets();
     }).catch(err => console.error("Error initializing Wasm module:", err));
   }, []);
 
@@ -153,9 +148,15 @@ function App() {
   }
 
   const handleBet = () => {
-      resolveBets();
-      setBankrollUI(bankroll.current);
-      setOptimalBankrollUI(opponentBankroll.current);
+      if (gameState === "showBet") {
+          resolveBets();
+          setBankrollUI(bankroll.current);
+          setOptimalBankrollUI(opponentBankroll.current);
+          setGameState("showNextBet");
+      } else {
+          generateBets();
+          setGameState("showBet");
+      }
       /*
     const input = [0.8, 1.9, 0.2, 10.0];
     let m = multi_kelly(input);
@@ -234,8 +235,6 @@ function App() {
   };
   */
 
-  const resultClass = betResultUI === 'win' ? 'backgroundWin' : betResultUI === 'lose' ? 'backgroundLose' : 'backgroundNeutral';
-
   const handleBetOutcome = (win, amount) => {
     console.log(`Bet Outcome: ${win ? 'Won' : 'Lost'}, Amount: ${amount}`);
     // Update bankroll or perform other actions based on the bet outcome
@@ -253,8 +252,6 @@ function App() {
           onSliderChange={handleSliderChange}
         />
       ))}
-      <button onClick={() => generateBets()}>Add Bet</button>
-      {/* Implement UI for updating and deleting bets */}
     </div>
 
 
@@ -270,7 +267,7 @@ function App() {
         <div>
           <label>Your bet: ${userBetUI.toFixed(2)} ({((userBetUI / bankrollUI) * 100).toFixed(2)}% of bankroll)</label>
         </div>
-        <button className="betButton" onClick={handleBet}>{betResultUI !== "neutral" ? "Next Bet" : "Bet"}</button>
+        <button className="betButton" onClick={handleBet}>{gameState === "showBet" ? "Bet" : "Next Bet"}</button>
         <p>{messageUI}</p>
       </header>
     </div>
