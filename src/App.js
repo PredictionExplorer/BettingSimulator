@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import init, { multiple_kelly } from './pkg/kelly_sim';
 import './App.css';
+import Box from '@mui/material/Box'; // Import Box from MUI
 
 import Container from '@mui/material/Container';
 
@@ -128,33 +129,33 @@ function BetComponent({ bet, onSliderChange }) {
       : 'neutral-background'
   }`;
 
-    return (
-    <Card variant="outlined" sx={{ marginBottom: 2 }}>
-      <CardContent>
-        <Typography sx={{ mb: 1.5 }}>
-          Probability of Winning: {(bet.probability * 100).toFixed(2)}%
-        </Typography>
-        <Typography sx={{ mb: 1.5 }}>
-          Implied odds: {(100.0 / bet.payout).toFixed(2)}%
-        </Typography>
-        <Typography sx={{ mb: 1.5 }}>
-          Payout: {bet.payout.toFixed(2)}x
-        </Typography>
-        <Typography sx={{ mb: 1.5 }}>
-          Optimal: {(bet.optimalSize * 100).toFixed(2)}%
-        </Typography>
-        <Typography gutterBottom>
-          Bet Percentage of Bankroll:
-        </Typography>
-        <PrettoSlider
-          valueLabelDisplay="auto"
-          aria-label="pretto slider"
-          defaultValue={20}
+   return (
+    <Box
+      sx={{
+        backgroundColor: bet.state === 'win' ? 'green' : (bet.state === 'lose' ? 'red' : 'gray'),
+        color: 'white', // Example of additional styling
+        padding: 2, // Theme-aware spacing
+        borderRadius: 1, // Theme-aware border radius
+      }}
+    >
+      <h2>Bet Details</h2>
+      <p>Probability of Winning: {(bet.probability * 100).toFixed(2)}%</p>
+      <p>Implied odds: {(100.0 / bet.payout).toFixed(2)}% </p>
+      <p>Payout: {bet.payout.toFixed(2)}x </p>
+      <p>Optimal: {bet.state !== 'neutral' ? `${(bet.optimalSize * 100).toFixed(2)}%` : '?'}</p>
+
+      <label>
+        Bet Percentage of Bankroll:
+        <input
+          type="range"
+          min="0"
+          max="100"
           value={bet.betPercentage}
           onChange={(e) => onSliderChange(bet.id, parseInt(e.target.value, 10))}
         />
-      </CardContent>
-    </Card>
+        {bet.betPercentage.toFixed(2)}%
+      </label>
+    </Box>
   );
 
 
@@ -194,7 +195,7 @@ function App() {
   const [payoutUI, setPayoutUI] = useState(0);
   const [bankrollUI, setBankrollUI] = useState(1000);
   const [optimalBankrollUI, setOptimalBankrollUI] = useState(1000);
-  const [messageUI, setMessageUI] = useState(1000);
+  const [messageUI, setMessageUI] = useState("Good Luck!");
   const [probabilityUI, setProbabilityUI] = useState(0.5);
   const [gameState, setGameState] = useState("showBet");
   const [userBetUI, setUserBetUI] = useState(0);
@@ -364,6 +365,7 @@ function App() {
           </Grid>
         ))}
       </Grid>
+      <p>{messageUI}</p>
     </Container>
     </ThemeProvider>
   );
