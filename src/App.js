@@ -119,6 +119,7 @@ function calculateOptimalBankroll(initialBankroll, growthRate, numberOfBets) {
   return initialBankroll * Math.pow(1 + effectiveGrowthRate, numberOfBets);
 }
 
+  // <p sx={{ marginBottom: '8px' }}>Optimal: {bet.state !== 'neutral' ? `${(bet.optimalSize * 100).toFixed(2)}%` : '?'}</p>
 
 function BetComponent({ bet, onSliderChange }) {
   const className = `bet-component ${
@@ -145,7 +146,7 @@ function BetComponent({ bet, onSliderChange }) {
   <p sx={{ marginBottom: '8px' }}>Implied odds: {(100.0 / bet.payout).toFixed(2)}% </p>
   <p sx={{ marginBottom: '8px' }}>Edge (probability - implied): {(100 * (bet.probability - (1.0 / bet.payout))).toFixed(2)}% </p>
   <p sx={{ marginBottom: '8px' }}>Payout: {bet.payout.toFixed(2)}x </p>
-  <p sx={{ marginBottom: '8px' }}>Optimal: {bet.state !== 'neutral' ? `${(bet.optimalSize * 100).toFixed(2)}%` : '?'}</p>
+  <p sx={{ marginBottom: '8px' }}>Optimal: {`${(bet.optimalSize * 100).toFixed(2)}%`}</p>
 
   {/* For the slider and its label, you might want to keep or adjust the spacing as needed */}
   <Box sx={{ width: '100%', mt: 2 }}>
@@ -280,7 +281,7 @@ function App() {
       for (let i = 0; i < N; i++) {
           let bet = generateOneBet();
           bet.id = i;
-          result.push(bet)
+          result.push(bet);
           forKelly.push(bet.probability);
           forKelly.push(bet.payout - 1);
       }
@@ -294,6 +295,27 @@ function App() {
 
       setBets(result);
   }
+
+  const handleAddBet = () => {
+      let forKelly = [];
+      let result = [];
+      for (let i = 0; i < bets.length; i++) {
+          result.push(bets[i]);
+          forKelly.push(bets[i].probability);
+          forKelly.push(bets[i].payout - 1);
+      }
+      let bet = generateOneBet();
+      bet.id = result.length;
+      result.push(bet);
+      forKelly.push(bet.probability);
+      forKelly.push(bet.payout - 1);
+      let k = multi_kelly(forKelly);
+      for (let i = 0; i < result.length; i++) {
+          result[i].optimalSize = k.proportions[i];
+      }
+      setGrowthUI(k.growth);
+      setBets(result);
+  };
 
   const handleMinBetsChange = (event) => {
     const newMinBetsValue = Number(event.target.value);
@@ -364,9 +386,6 @@ function App() {
               <Typography variant="body1">
                 {betCountUI}
               </Typography>
-              <Button variant="contained" color="primary" onClick={handleBet} style={{ marginTop: '10px' }}>
-                {gameState === "showBet" ? "Bet" : "Next Bet"}
-              </Button>
             </CardContent>
           </Card>
         </Grid>
@@ -375,6 +394,20 @@ function App() {
       <Typography variant="h4" component="h1" gutterBottom style={{ textAlign: 'center', marginBottom: '20px' }}>
         Betting Simulator
       </Typography>
+
+      <Grid container spacing={2} justify="center" style={{ marginBottom: '20px' }}>
+      <Grid item>
+        <Button variant="contained" color="primary" onClick={handleBet} style={{ margin: '10px' }}>
+          {gameState === "showBet" ? "Bet" : "Next Bet"}
+        </Button>
+      </Grid>
+      <Grid item>
+        <Button variant="contained" color="primary" onClick={handleAddBet} style={{ margin: '10px' }}>
+          Add Bet
+        </Button>
+      </Grid>
+    </Grid>
+
 
       {/* Grid container for bets */}
       <Grid container spacing={2}>
