@@ -21,17 +21,25 @@
   transform: scale(0.98); /* Slightly shrinks the button when clicked */
 }
 
-.backgroundWin {
+.bet-component {
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 5px;
+}
+
+.neutral-background {
+  background-color: #282c34;
+}
+
+.win-background {
   background-color: #003300; /* A soft green */
 }
 
-.backgroundLose {
+.lose-background {
   background-color: #4C0000; /* A soft red */
 }
 
-.backgroundNeutral {
-  background-color: #282c34;
-}
+
 
 .slider {
   -webkit-appearance: none;  /* Override default CSS styles */

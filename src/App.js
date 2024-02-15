@@ -50,10 +50,19 @@ function calculateOptimalBankroll(initialBankroll, growthRate, numberOfBets) {
 
 
 function BetComponent({ bet, onSliderChange }) {
+  console.log(bet.state);
+  const className = `bet-component ${
+    bet.state === 'win'
+      ? 'win-background'
+      : bet.state === 'lose'
+      ? 'lose-background'
+      : 'neutral-background'
+  }`;
   return (
-    <div>
+    <div className={className}>
       <h2>Bet Details</h2>
       <p>Probability of Winning: {(bet.probability * 100).toFixed(2)}%</p>
+      <p>Implied odds: {(100.0 / bet.payout).toFixed(2)}% </p>
       <p>Payout: {bet.payout.toFixed(2)}x </p>
       <p>Optimal: {(bet.optimalSize * 100).toFixed(2)}%</p>
 
@@ -74,9 +83,8 @@ function BetComponent({ bet, onSliderChange }) {
 
 function App() {
   const bankroll = useRef(1000);
-  const optimalBankroll = useRef(1000);
-  const probability = useRef(0.5);
-  const payout = useRef(2);
+  const opponentBankroll = useRef(1000);
+
   const betCount = useRef(0);
 
   const [betCountUI, setBetCountUI] = useState(0);
@@ -92,39 +100,18 @@ function App() {
 
   const [bets, setBets] = useState([]);
 
-  // Add a new bet
-  const addBet = (probability, payout) => {
-    const newBet = {
-      id: Date.now(), // Simple unique ID generation
-      probability,
-      payout,
-    };
-    setBets([...bets, newBet]);
-  };
-
-  // Update a bet by id
-  const updateBet = (id, newProbability, newPayout) => {
-    const updatedBets = bets.map(bet =>
-      bet.id === id ? { ...bet, probability: newProbability, payout: newPayout } : bet
-    );
-    setBets(updatedBets);
-  };
-
-  // Delete a bet by id
-  const deleteBet = (id) => {
-    setBets(bets.filter(bet => bet.id !== id));
-  };
-
   const handleSliderChange = (id, newPercentage) => {
     setBets(bets.map(bet =>
-      bet.id === id ? { ...bet, betPercentage: newPercentage } : bet
+      bet.id === id ? { ...bet, betPercentage: newPercentage / 100.0 } : bet
     ));
     console.log(bets);
   };
 
+    /*
   useEffect(() => {
     startNewRound();
   }, []);
+  */
 
   useEffect(() => {
     init().then(() => {
@@ -144,7 +131,32 @@ function App() {
     }
   };
 
+  const resolveBets = () => {
+      let total = 0.0
+      let opponentTotal = 0.0
+      for (let i = 0; i < bets.length; i++) {
+          let result = Math.random();
+          bets[i].result = result;
+          if (result < bets[i].probability) {
+              bets[i].state = 'win';
+              total += bets[i].betPercentage * (bets[i].payout - 1);
+              opponentTotal += bets[i].optimalSize * (bets[i].payout - 1);
+          } else {
+              bets[i].state = 'lose';
+              total -= bets[i].betPercentage;
+              opponentTotal -= bets[i].optimalSize;
+          }
+          console.log('total, opptotal', total, opponentTotal);
+      }
+      bankroll.current *= 1 + total;
+      opponentBankroll.current *= 1 + opponentTotal;
+  }
+
   const handleBet = () => {
+      resolveBets();
+      setBankrollUI(bankroll.current);
+      setOptimalBankrollUI(opponentBankroll.current);
+      /*
     const input = [0.8, 1.9, 0.2, 10.0];
     let m = multi_kelly(input);
     generateBets();
@@ -171,13 +183,15 @@ function App() {
       startNewRound();
     }
     setMessageUI(m.growth);
+    */
   };
 
   const generateOneBet = () => {
-      let p = Math.random() * 0.9 + 0.05;
+      //let p = getRandomFloat(0.05, 0.95);
+      let p = getRandomFloat(0.05, 0.3);
       let implied = 1 / p;
       let b = getRandomFloat(implied, implied + (implied - 1) * 2);
-      return {probability: p, payout: b, betPercentage: p, id: null, optimalSize: null, state: "neutral"}
+      return {probability: p, payout: b, betPercentage: 0.0, id: null, optimalSize: null, state: "neutral", result: null}
   }
 
   const generateBets = () => {
@@ -200,6 +214,7 @@ function App() {
       setBets(result);
   }
 
+    /*
   const startNewRound = () => {
     probability.current = Math.random() * 0.9 + 0.05;
     let G = Math.random() * 0.02 + 0.0001;
@@ -217,6 +232,7 @@ function App() {
     setMessageUI('Good Luck');
     setBetCountUI(betCount.current);
   };
+  */
 
   const resultClass = betResultUI === 'win' ? 'backgroundWin' : betResultUI === 'lose' ? 'backgroundLose' : 'backgroundNeutral';
 
@@ -226,7 +242,7 @@ function App() {
   };
 
   return (
-    <div className={`BettingApp ${resultClass}`}>
+    <div className={`BettingApp neutral-background`}>
       <header className="App-header">
         <h1>Betting Simulator</h1>
       <div>
@@ -242,9 +258,9 @@ function App() {
     </div>
 
 
-        <p>Your bankroll: ${bankrollUI.toFixed(2)}</p>
+        <p>Your bankroll: ${bankrollUI.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+        <p>Optimal bankroll: ${optimalBankrollUI.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         <p>Number of bets: {betCountUI}</p>
-        <p>Optimal bankroll: ${optimalBankrollUI.toFixed(2)}</p>
         <div>
           <p>Probability of winning: {(probabilityUI * 100).toFixed(2)}%</p>
         </div>
@@ -253,14 +269,6 @@ function App() {
         </div>
         <div>
           <label>Your bet: ${userBetUI.toFixed(2)} ({((userBetUI / bankrollUI) * 100).toFixed(2)}% of bankroll)</label>
-          <input
-            type="range"
-            min="0"
-            max={bankrollUI}
-            value={userBetUI}
-            onChange={(e) => setUserBetUI(parseFloat(e.target.value))}
-            className="slider"
-          />
         </div>
         <button className="betButton" onClick={handleBet}>{betResultUI !== "neutral" ? "Next Bet" : "Bet"}</button>
         <p>{messageUI}</p>
