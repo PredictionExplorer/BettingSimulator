@@ -186,6 +186,9 @@ function App() {
   const [minBets, setMinBets] = useState(1);
   const [maxBets, setMaxBets] = useState(5);
 
+  const [minProbability, setMinProbability] = useState(5);
+  const [maxProbability, setMaxProbability] = useState(95);
+
   const [isWasmReady, setWasmReady] = useState(false);
 
   const [bets, setBets] = useState([]);
@@ -261,7 +264,7 @@ function App() {
 
   const generateOneBet = () => {
       //let p = getRandomFloat(0.05, 0.95);
-      let p = getRandomFloat(0.05, 0.95);
+      let p = getRandomFloat(minProbability / 100.0, maxProbability / 100.0);
       let implied = 1 / p;
       let b = getRandomFloat(implied, implied + (implied - 1) * 2);
       return {probability: p, payout: b, betPercentage: 0.0, id: null, optimalSize: null, state: "neutral", result: null}
@@ -303,6 +306,20 @@ function App() {
     if (newMaxBetsValue > 20) return;
     if (newMaxBetsValue < minBets) return;
     setMaxBets(newMaxBetsValue);
+  };
+
+  const handleMinProbabilityChange = (event) => {
+    const newMinProbability = Number(event.target.value);
+    if (newMinProbability < 1) return;
+    if (newMinProbability > maxProbability) return;
+    setMinProbability(newMinProbability);
+  };
+
+  const handleMaxProbabilityChange = (event) => {
+    const newMaxProbability = Number(event.target.value);
+    if (newMaxProbability > 100) return;
+    if (newMaxProbability < minProbability) return;
+    setMaxProbability(newMaxProbability);
   };
 
   return (
@@ -386,6 +403,28 @@ function App() {
           type="number"
           value={maxBets}
           onChange={handleMaxBetsChange}
+          variant="outlined"
+          fullWidth
+        />
+      </Grid>
+    </Grid>
+      <Grid container spacing={2} justifyContent="center" style={{ marginTop: '20px' }}>
+      <Grid item xs={12} sm={6} md={3}>
+        <TextField
+          label="Minimum Probability"
+          type="number"
+          value={minProbability}
+          onChange={handleMinProbabilityChange}
+          variant="outlined"
+          fullWidth
+        />
+      </Grid>
+      <Grid item xs={12} sm={6} md={3}>
+        <TextField
+          label="Maximum Probability"
+          type="number"
+          value={maxProbability}
+          onChange={handleMaxProbabilityChange}
           variant="outlined"
           fullWidth
         />
