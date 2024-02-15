@@ -253,7 +253,7 @@ function App() {
 
   const generateOneBet = () => {
       //let p = getRandomFloat(0.05, 0.95);
-      let p = Math.min(getRandomFloat(0.05, 0.95), getRandomFloat(0.05, 0.95));
+      let p = getRandomFloat(0.05, 0.95);
       let implied = 1 / p;
       let b = getRandomFloat(implied, implied + (implied - 1) * 2);
       return {probability: p, payout: b, betPercentage: 0.0, id: null, optimalSize: null, state: "neutral", result: null}
