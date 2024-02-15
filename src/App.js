@@ -149,8 +149,9 @@ function BetComponent({ bet, onSliderChange }) {
           type="range"
           min="0"
           max="100"
+          step="0.01"
           value={bet.betPercentage}
-          onChange={(e) => onSliderChange(bet.id, parseInt(e.target.value, 10))}
+          onChange={(e) => onSliderChange(bet.id, parseFloat(e.target.value, 10))}
         />
         {bet.betPercentage.toFixed(2)}%
       </label>
@@ -230,8 +231,15 @@ function App() {
 
   const handleBet = () => {
       if (gameState === "showBet") {
-          resolveBets();
-          setGameState("showNextBet");
+          let totalBetPercentage = bets.reduce((total, bet) => {
+              return total + bet.betPercentage;
+            }, 0);
+          if (totalBetPercentage < 100) {
+              resolveBets();
+              setGameState("showNextBet");
+          } else {
+              setMessageUI("You bet more than your bankroll! Reduce your bets.");
+          }
       } else {
           generateBets();
           setBankrollUI(bankroll.current);
