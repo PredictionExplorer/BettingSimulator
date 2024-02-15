@@ -16,6 +16,14 @@ import Grid from '@mui/material/Grid';
 import { styled } from '@mui/material/styles';
 import { createTheme, ThemeProvider, CssBaseline } from '@mui/material';
 
+import Switch from '@mui/material/Switch';
+import FormControlLabel from '@mui/material/FormControlLabel'; // For labeling the switch
+
+import { Line } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend } from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
+
 const theme = createTheme({
   palette: {
     mode: 'dark',
@@ -119,7 +127,6 @@ function calculateOptimalBankroll(initialBankroll, growthRate, numberOfBets) {
   return initialBankroll * Math.pow(1 + effectiveGrowthRate, numberOfBets);
 }
 
-  // <p sx={{ marginBottom: '8px' }}>Optimal: {bet.state !== 'neutral' ? `${(bet.optimalSize * 100).toFixed(2)}%` : '?'}</p>
 
 function BetComponent({ bet, onSliderChange }) {
   const className = `bet-component ${
@@ -146,7 +153,7 @@ function BetComponent({ bet, onSliderChange }) {
   <p sx={{ marginBottom: '8px' }}>Implied odds: {(100.0 / bet.payout).toFixed(2)}% </p>
   <p sx={{ marginBottom: '8px' }}>Edge (probability - implied): {(100 * (bet.probability - (1.0 / bet.payout))).toFixed(2)}% </p>
   <p sx={{ marginBottom: '8px' }}>Payout: {bet.payout.toFixed(2)}x </p>
-  <p sx={{ marginBottom: '8px' }}>Optimal: {`${(bet.optimalSize * 100).toFixed(2)}%`}</p>
+  <p sx={{ marginBottom: '8px' }}>Optimal: {bet.state !== 'neutral' ? `${(bet.optimalSize * 100).toFixed(2)}%` : '?'}</p>
 
   {/* For the slider and its label, you might want to keep or adjust the spacing as needed */}
   <Box sx={{ width: '100%', mt: 2 }}>
@@ -169,9 +176,59 @@ function BetComponent({ bet, onSliderChange }) {
   );
 }
 
+const BankrollChart = ({ bankrollHistory, optimalBankrollHistory }) => {
+  const data = {
+    datasets: [
+      {
+        label: 'Bankroll',
+        data: bankrollHistory,
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+      },
+      {
+        label: 'Optimal Bankroll',
+        data: optimalBankrollHistory,
+        borderColor: 'rgb(255, 99, 132)',
+        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+        tension: 0.4,
+      }
+    ],
+  };
+
+  const options = {
+    scales: {
+      x: {
+        type: 'linear',
+        position: 'bottom',
+        title: {
+          display: true,
+          text: 'Bet Number'
+        }
+      },
+      y: {
+        title: {
+          display: true,
+          text: 'Bankroll'
+        }
+      }
+    },
+    elements: {
+      line: {
+        tension: 0.4 // This is to make the line a bit smoother
+      }
+    },
+    responsive: true,
+  };
+
+  return <Line data={data} options={options} />;
+};
+
 function App() {
   const bankroll = useRef(1000);
   const opponentBankroll = useRef(1000);
+  const [bankrollHistory, setBankrollHistory] = useState([{x: 0, y: 1000}]);
+  const [optimalBankrollHistory, setOptimalBankrollHistory] = useState([{x: 0, y: 1000}]);
+
 
   const betCount = useRef(0);
 
@@ -190,6 +247,7 @@ function App() {
 
   const [minProbability, setMinProbability] = useState(5);
   const [maxProbability, setMaxProbability] = useState(95);
+  const [isChartVisible, setIsChartVisible] = useState(false);
 
   const [isWasmReady, setWasmReady] = useState(false);
 
@@ -241,6 +299,8 @@ function App() {
       setMessageUI(msg);
       bankroll.current *= 1 + total;
       opponentBankroll.current *= 1 + opponentTotal;
+      setBankrollHistory(prevHistory => [...prevHistory, {x: prevHistory.length, y: bankroll.current}]);
+      setOptimalBankrollHistory(prevHistory => [...prevHistory, {x: prevHistory.length, y: opponentBankroll.current}]);
   }
 
   const handleBet = () => {
@@ -395,6 +455,10 @@ function App() {
         Betting Simulator
       </Typography>
 
+      {isChartVisible && (
+          <BankrollChart bankrollHistory={bankrollHistory} optimalBankrollHistory={optimalBankrollHistory} />
+      )}
+
       <Grid container spacing={2} justify="center" style={{ marginBottom: '20px' }}>
       <Grid item>
         <Button variant="contained" color="primary" onClick={handleBet} style={{ margin: '10px' }}>
@@ -403,9 +467,24 @@ function App() {
       </Grid>
       <Grid item>
         <Button variant="contained" color="primary" onClick={handleAddBet} style={{ margin: '10px' }}>
-          Add Bet
+          Add Bet (experimental)
         </Button>
       </Grid>
+
+      <Grid item>
+      <FormControlLabel
+          control={
+            <Switch
+              checked={isChartVisible}
+              onChange={() => setIsChartVisible(!isChartVisible)}
+              name="chartVisibilityToggle"
+              color="primary"
+            />
+          }
+          label={isChartVisible ? "Hide Chart" : "Show Chart"}
+        />
+      </Grid>
+
     </Grid>
 
 
