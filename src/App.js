@@ -4,6 +4,7 @@ import './App.css';
 import Box from '@mui/material/Box'; // Import Box from MUI
 
 import Container from '@mui/material/Container';
+import TextField from '@mui/material/TextField';
 
 
 import Button from '@mui/material/Button';
@@ -120,7 +121,6 @@ function calculateOptimalBankroll(initialBankroll, growthRate, numberOfBets) {
 
 
 function BetComponent({ bet, onSliderChange }) {
-  console.log(bet.state);
   const className = `bet-component ${
     bet.state === 'win'
       ? 'win-background'
@@ -175,6 +175,9 @@ function App() {
   const [gameState, setGameState] = useState("showBet");
   const [userBetUI, setUserBetUI] = useState(0);
 
+  const [minBets, setMinBets] = useState(1);
+  const [maxBets, setMaxBets] = useState(5);
+
   const [isWasmReady, setWasmReady] = useState(false);
 
   const [bets, setBets] = useState([]);
@@ -183,7 +186,6 @@ function App() {
     setBets(bets.map(bet =>
       bet.id === id ? { ...bet, betPercentage: newPercentage } : bet
     ));
-    console.log(bets);
   };
 
   useEffect(() => {
@@ -220,7 +222,6 @@ function App() {
               total -= bets[i].betPercentage / 100.0; //divide by 100 to be compatible with slider
               opponentTotal -= bets[i].optimalSize;
           }
-          console.log('total, opptotal', total, opponentTotal);
       }
       let msg = `Your Bankroll: ${(bankroll.current * total >= 0 ? "+" : "")}${(bankroll.current * total).toFixed(2)} `;
       msg += `Kelly Bankroll: ${(opponentBankroll.current * opponentTotal >= 0 ? "+" : "")}${(opponentBankroll.current * opponentTotal).toFixed(2)}`;
@@ -259,10 +260,9 @@ function App() {
   }
 
   const generateBets = () => {
-      let min = 1;
-      let max = 5;
+      let min = minBets;
+      let max = maxBets;
       let N = Math.floor(Math.random() * (max - min + 1)) + min;
-      console.log(N);
       let result = [];
       let forKelly = [];
       for (let i = 0; i < N; i++) {
@@ -281,9 +281,18 @@ function App() {
       setBets(result);
   }
 
-  const handleBetOutcome = (win, amount) => {
-    console.log(`Bet Outcome: ${win ? 'Won' : 'Lost'}, Amount: ${amount}`);
-    // Update bankroll or perform other actions based on the bet outcome
+  const handleMinBetsChange = (event) => {
+    const newMinBetsValue = Number(event.target.value);
+    if (newMinBetsValue < 1) return;
+    if (newMinBetsValue > maxBets) return;
+    setMinBets(newMinBetsValue);
+  };
+
+  const handleMaxBetsChange = (event) => {
+    const newMaxBetsValue = Number(event.target.value);
+    if (newMaxBetsValue > 20) return;
+    if (newMaxBetsValue < minBets) return;
+    setMaxBets(newMaxBetsValue);
   };
 
   return (
@@ -350,6 +359,28 @@ function App() {
           </Grid>
         ))}
       </Grid>
+      <Grid container spacing={2} justifyContent="center" style={{ marginTop: '20px' }}>
+      <Grid item xs={12} sm={6} md={3}>
+        <TextField
+          label="Minimum Number of Bets"
+          type="number"
+          value={minBets}
+          onChange={handleMinBetsChange}
+          variant="outlined"
+          fullWidth
+        />
+      </Grid>
+      <Grid item xs={12} sm={6} md={3}>
+        <TextField
+          label="Maximum Number of Bets"
+          type="number"
+          value={maxBets}
+          onChange={handleMaxBetsChange}
+          variant="outlined"
+          fullWidth
+        />
+      </Grid>
+    </Grid>
       <p>Expected Growth: {growthUI.toFixed(3)}</p>
       <p>{messageUI}</p>
     </Container>
