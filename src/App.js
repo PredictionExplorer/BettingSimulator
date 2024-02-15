@@ -102,7 +102,7 @@ function App() {
 
   const handleSliderChange = (id, newPercentage) => {
     setBets(bets.map(bet =>
-      bet.id === id ? { ...bet, betPercentage: newPercentage / 100.0 } : bet
+      bet.id === id ? { ...bet, betPercentage: newPercentage } : bet
     ));
     console.log(bets);
   };
@@ -134,15 +134,18 @@ function App() {
           bets[i].result = result;
           if (result < bets[i].probability) {
               bets[i].state = 'win';
-              total += bets[i].betPercentage * (bets[i].payout - 1);
+              total += bets[i].betPercentage * (bets[i].payout - 1) / 100.0; // divide by 100 to be compatible with slider
               opponentTotal += bets[i].optimalSize * (bets[i].payout - 1);
           } else {
               bets[i].state = 'lose';
-              total -= bets[i].betPercentage;
+              total -= bets[i].betPercentage / 100.0; //divide by 100 to be compatible with slider
               opponentTotal -= bets[i].optimalSize;
           }
           console.log('total, opptotal', total, opponentTotal);
       }
+      let msg = `Your Bankroll: ${(bankroll.current * total >= 0 ? "+" : "")}${(bankroll.current * total).toFixed(2)} `;
+      msg += `Kelly Bankroll: ${(opponentBankroll.current * opponentTotal >= 0 ? "+" : "")}${(opponentBankroll.current * opponentTotal).toFixed(2)}`;
+      setMessageUI(msg);
       bankroll.current *= 1 + total;
       opponentBankroll.current *= 1 + opponentTotal;
   }
@@ -150,46 +153,20 @@ function App() {
   const handleBet = () => {
       if (gameState === "showBet") {
           resolveBets();
-          setBankrollUI(bankroll.current);
-          setOptimalBankrollUI(opponentBankroll.current);
           setGameState("showNextBet");
       } else {
           generateBets();
+          setBankrollUI(bankroll.current);
+          setOptimalBankrollUI(opponentBankroll.current);
           setGameState("showBet");
+          setMessageUI("Good luck!");
+          setBetCountUI(betCountUI + 1);
       }
-      /*
-    const input = [0.8, 1.9, 0.2, 10.0];
-    let m = multi_kelly(input);
-    generateBets();
-
-    if (betResultUI === "neutral") {
-        let betResult;
-        let bankrollTmp = bankroll.current;
-        let kellyBet = kelly(payout.current, probability.current);
-        if (Math.random() < probability.current) {
-          betResult = 'win';
-          bankroll.current += userBetUI * payout.current;
-          console.log("kellyBet", kellyBet, "optimalBank", optimalBankroll.current, 'payout', payout.current);
-          optimalBankroll.current += kellyBet * optimalBankroll.current * payout.current;
-        } else {
-          betResult = 'lose';
-          bankroll.current -= userBetUI;
-          console.log("kellyBet", kellyBet, "optimalBank", optimalBankroll.current);
-          optimalBankroll.current -= kellyBet * optimalBankroll.current;
-        }
-        betCount.current += 1;
-        setBetResultUI(betResult);
-        setMessageUI(`You ${betResult === "win" ? "won" : "lost"}! New bankroll: $${bankroll.current.toFixed(2)}. Correct Kelly Bet was: $${(kellyBet * bankrollTmp).toFixed(2)} (${(kellyBet * 100).toFixed(2)}%)`);
-    } else {
-      startNewRound();
-    }
-    setMessageUI(m.growth);
-    */
   };
 
   const generateOneBet = () => {
       //let p = getRandomFloat(0.05, 0.95);
-      let p = getRandomFloat(0.05, 0.3);
+      let p = Math.min(getRandomFloat(0.05, 0.95), getRandomFloat(0.05, 0.95));
       let implied = 1 / p;
       let b = getRandomFloat(implied, implied + (implied - 1) * 2);
       return {probability: p, payout: b, betPercentage: 0.0, id: null, optimalSize: null, state: "neutral", result: null}
@@ -215,26 +192,6 @@ function App() {
       setBets(result);
   }
 
-    /*
-  const startNewRound = () => {
-    probability.current = Math.random() * 0.9 + 0.05;
-    let G = Math.random() * 0.02 + 0.0001;
-    while(true) {
-        payout.current = binarySearchForB(probability.current, G);
-        if (payout.current > 0) break
-    }
-    console.log('G', G, 'payout', payout.current);
-    setUserBetUI(0);
-    setBankrollUI(bankroll.current);
-    setOptimalBankrollUI(optimalBankroll.current);
-    setProbabilityUI(probability.current);
-    setPayoutUI(payout.current + 1);
-    setBetResultUI('neutral');
-    setMessageUI('Good Luck');
-    setBetCountUI(betCount.current);
-  };
-  */
-
   const handleBetOutcome = (win, amount) => {
     console.log(`Bet Outcome: ${win ? 'Won' : 'Lost'}, Amount: ${amount}`);
     // Update bankroll or perform other actions based on the bet outcome
@@ -258,15 +215,6 @@ function App() {
         <p>Your bankroll: ${bankrollUI.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         <p>Optimal bankroll: ${optimalBankrollUI.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
         <p>Number of bets: {betCountUI}</p>
-        <div>
-          <p>Probability of winning: {(probabilityUI * 100).toFixed(2)}%</p>
-        </div>
-        <div>
-          <p>Payout on win: {payoutUI.toFixed(2)}x the bet (${(payoutUI * userBetUI).toFixed(2)}) (including your bet) ({(100.0 / payoutUI).toFixed(2)}% implied odds)</p>
-        </div>
-        <div>
-          <label>Your bet: ${userBetUI.toFixed(2)} ({((userBetUI / bankrollUI) * 100).toFixed(2)}% of bankroll)</label>
-        </div>
         <button className="betButton" onClick={handleBet}>{gameState === "showBet" ? "Bet" : "Next Bet"}</button>
         <p>{messageUI}</p>
       </header>
