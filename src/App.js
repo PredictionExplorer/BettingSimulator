@@ -2,6 +2,75 @@ import React, { useState, useEffect, useRef } from 'react';
 import init, { multiple_kelly } from './pkg/kelly_sim';
 import './App.css';
 
+import Container from '@mui/material/Container';
+
+
+import Button from '@mui/material/Button';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
+import Slider from '@mui/material/Slider';
+import Grid from '@mui/material/Grid';
+import { styled } from '@mui/material/styles';
+import { createTheme, ThemeProvider, CssBaseline } from '@mui/material';
+
+const theme = createTheme({
+  palette: {
+    mode: 'dark',
+    background: {
+      default: '#424242', // Lighter dark shade
+    },
+    primary: {
+      main: '#bb86fc', // Customizable
+    },
+    secondary: {
+      main: '#03dac6', // Customizable
+    },
+    // Adjust text colors if needed to improve readability
+    text: {
+      primary: '#ffffff',
+      secondary: 'rgba(255, 255, 255, 0.7)',
+    },
+  },
+  // You can also customize other theme aspects here
+});
+
+const PrettoSlider = styled(Slider)({
+  color: '#52af77',
+  height: 8,
+  '& .MuiSlider-thumb': {
+    height: 24,
+    width: 24,
+    backgroundColor: '#fff',
+    border: '2px solid currentColor',
+    '&:focus, &:hover, &.Mui-active': {
+      boxShadow: 'inherit',
+    },
+  },
+  '& .MuiSlider-valueLabel': {
+    lineHeight: 1.2,
+    fontSize: 12,
+    background: 'unset',
+    padding: 0,
+    width: 32,
+    height: 32,
+    borderRadius: '50% 50% 50% 0',
+    backgroundColor: '#52af77',
+    transformOrigin: 'bottom left',
+    transform: 'translate(50%, -100%) rotate(-45deg) scale(0)',
+    '&:before': { display: 'none' },
+    '&.MuiSlider-valueLabelOpen': {
+      transform: 'translate(50%, -100%) rotate(-45deg) scale(1)',
+    },
+    '& > *': {
+      transform: 'rotate(45deg)',
+    },
+  },
+});
+
+
+
+
 function kelly(b, p) {
   const q = 1 - p;
   return (b * p - q) / b;
@@ -58,6 +127,39 @@ function BetComponent({ bet, onSliderChange }) {
       ? 'lose-background'
       : 'neutral-background'
   }`;
+
+    return (
+    <Card variant="outlined" sx={{ marginBottom: 2 }}>
+      <CardContent>
+        <Typography sx={{ mb: 1.5 }}>
+          Probability of Winning: {(bet.probability * 100).toFixed(2)}%
+        </Typography>
+        <Typography sx={{ mb: 1.5 }}>
+          Implied odds: {(100.0 / bet.payout).toFixed(2)}%
+        </Typography>
+        <Typography sx={{ mb: 1.5 }}>
+          Payout: {bet.payout.toFixed(2)}x
+        </Typography>
+        <Typography sx={{ mb: 1.5 }}>
+          Optimal: {(bet.optimalSize * 100).toFixed(2)}%
+        </Typography>
+        <Typography gutterBottom>
+          Bet Percentage of Bankroll:
+        </Typography>
+        <PrettoSlider
+          valueLabelDisplay="auto"
+          aria-label="pretto slider"
+          defaultValue={20}
+          value={bet.betPercentage}
+          onChange={(e) => onSliderChange(bet.id, parseInt(e.target.value, 10))}
+        />
+      </CardContent>
+    </Card>
+  );
+
+
+
+    /*
   return (
     <div className={className}>
       <h2>Bet Details</h2>
@@ -79,6 +181,7 @@ function BetComponent({ bet, onSliderChange }) {
       </label>
     </div>
   );
+  */
 }
 
 function App() {
@@ -198,28 +301,73 @@ function App() {
   };
 
   return (
-    <div className={`BettingApp neutral-background`}>
-      <header className="App-header">
-        <h1>Betting Simulator</h1>
-      <div>
-      {bets.map(bet => (
-        <BetComponent
-          key={bet.id}
-          bet={bet}
-          onSliderChange={handleSliderChange}
-        />
-      ))}
-    </div>
+    <ThemeProvider theme={theme}>
+    <CssBaseline />
+    <Container maxWidth="lg" style={{ marginTop: '20px' }}>
+      {/* Bankroll Information in Cards */}
+      <Grid container spacing={2} justifyContent="center" style={{ marginBottom: '20px' }}>
+        <Grid item xs={12} sm={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" component="h2">
+                Your Bankroll
+              </Typography>
+              <Typography variant="body1">
+                ${bankrollUI.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
 
+        <Grid item xs={12} sm={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" component="h2">
+                Optimal Bankroll
+              </Typography>
+              <Typography variant="body1">
+                ${optimalBankrollUI.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
 
-        <p>Your bankroll: ${bankrollUI.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-        <p>Optimal bankroll: ${optimalBankrollUI.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-        <p>Number of bets: {betCountUI}</p>
-        <button className="betButton" onClick={handleBet}>{gameState === "showBet" ? "Bet" : "Next Bet"}</button>
-        <p>{messageUI}</p>
-      </header>
-    </div>
+        <Grid item xs={12} sm={4}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" component="h2">
+                Number of Bets
+              </Typography>
+              <Typography variant="body1">
+                {betCountUI}
+              </Typography>
+              <Button variant="contained" color="primary" onClick={handleBet} style={{ marginTop: '10px' }}>
+                {gameState === "showBet" ? "Bet" : "Next Bet"}
+              </Button>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+
+      <Typography variant="h4" component="h1" gutterBottom style={{ textAlign: 'center', marginBottom: '20px' }}>
+        Betting Simulator
+      </Typography>
+
+      {/* Grid container for bets */}
+      <Grid container spacing={2}>
+        {bets.map(bet => (
+          <Grid item xs={12} sm={6} md={4} key={bet.id}>
+            <BetComponent
+              bet={bet}
+              onSliderChange={handleSliderChange}
+            />
+          </Grid>
+        ))}
+      </Grid>
+    </Container>
+    </ThemeProvider>
   );
+
 }
 
 export default App;
