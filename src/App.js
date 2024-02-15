@@ -243,7 +243,7 @@ function App() {
   const [userBetUI, setUserBetUI] = useState(0);
 
   const [minBets, setMinBets] = useState(1);
-  const [maxBets, setMaxBets] = useState(5);
+  const [maxBets, setMaxBets] = useState(2);
 
   const [minProbability, setMinProbability] = useState(5);
   const [maxProbability, setMaxProbability] = useState(95);
@@ -377,32 +377,36 @@ function App() {
       setBets(result);
   };
 
-  const handleMinBetsChange = (event) => {
-    const newMinBetsValue = Number(event.target.value);
-    if (newMinBetsValue < 1) return;
-    if (newMinBetsValue > maxBets) return;
-    setMinBets(newMinBetsValue);
+  const handleMinBetsChange = () => {
+    if (minBets < 1) {
+        setMinBets(1);
+    } else if (minBets > maxBets) {
+        setMinBets(maxBets);
+    }
   };
 
-  const handleMaxBetsChange = (event) => {
-    const newMaxBetsValue = Number(event.target.value);
-    if (newMaxBetsValue > 20) return;
-    if (newMaxBetsValue < minBets) return;
-    setMaxBets(newMaxBetsValue);
+  const handleMaxBetsChange = () => {
+    if (maxBets > 15) {
+        setMaxBets(15);
+    } else if (maxBets < minBets) {
+        setMaxBets(minBets);
+    }
   };
 
-  const handleMinProbabilityChange = (event) => {
-    const newMinProbability = Number(event.target.value);
-    if (newMinProbability < 1) return;
-    if (newMinProbability > maxProbability) return;
-    setMinProbability(newMinProbability);
+  const handleMinProbabilityChange = () => {
+    if (minProbability < 1) {
+        setMinProbability(1);
+    } else if (minProbability > maxProbability) {
+        setMinProbability(maxProbability);
+    }
   };
 
-  const handleMaxProbabilityChange = (event) => {
-    const newMaxProbability = Number(event.target.value);
-    if (newMaxProbability > 100) return;
-    if (newMaxProbability < minProbability) return;
-    setMaxProbability(newMaxProbability);
+  const handleMaxProbabilityChange = () => {
+    if (maxProbability > 100) {
+        setMaxProbability(100);
+    } else if (maxProbability < minProbability) {
+        setMaxProbability(minProbability);
+    }
   };
 
   return (
@@ -505,7 +509,8 @@ function App() {
           label="Minimum Number of Bets"
           type="number"
           value={minBets}
-          onChange={handleMinBetsChange}
+          onChange={(e) => setMinBets(Number(e.target.value))}
+          onBlur={handleMinBetsChange}
           variant="outlined"
           fullWidth
         />
@@ -515,7 +520,8 @@ function App() {
           label="Maximum Number of Bets"
           type="number"
           value={maxBets}
-          onChange={handleMaxBetsChange}
+          onChange={(e) => setMaxBets(Number(e.target.value))}
+          onBlur={handleMaxBetsChange}
           variant="outlined"
           fullWidth
         />
@@ -527,7 +533,8 @@ function App() {
           label="Minimum Probability"
           type="number"
           value={minProbability}
-          onChange={handleMinProbabilityChange}
+          onChange={(e) => setMinProbability(Number(e.target.value))}
+          onBlur={handleMinProbabilityChange} // Validate on blur
           variant="outlined"
           fullWidth
         />
@@ -537,7 +544,8 @@ function App() {
           label="Maximum Probability"
           type="number"
           value={maxProbability}
-          onChange={handleMaxProbabilityChange}
+          onChange={(e) => setMaxProbability(Number(e.target.value))}
+          onBlur={handleMaxProbabilityChange} // Validate on blur
           variant="outlined"
           fullWidth
         />
