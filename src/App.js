@@ -138,7 +138,6 @@ function BetComponent({ bet, onSliderChange }) {
         borderRadius: 1, // Theme-aware border radius
       }}
     >
-      <h2>Bet Details</h2>
       <p>Probability of Winning: {(bet.probability * 100).toFixed(2)}%</p>
       <p>Implied odds: {(100.0 / bet.payout).toFixed(2)}% </p>
       <p>Payout: {bet.payout.toFixed(2)}x </p>
@@ -157,32 +156,6 @@ function BetComponent({ bet, onSliderChange }) {
       </label>
     </Box>
   );
-
-
-
-    /*
-  return (
-    <div className={className}>
-      <h2>Bet Details</h2>
-      <p>Probability of Winning: {(bet.probability * 100).toFixed(2)}%</p>
-      <p>Implied odds: {(100.0 / bet.payout).toFixed(2)}% </p>
-      <p>Payout: {bet.payout.toFixed(2)}x </p>
-      <p>Optimal: {(bet.optimalSize * 100).toFixed(2)}%</p>
-
-      <label>
-        Bet Percentage of Bankroll:
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={bet.betPercentage}
-          onChange={(e) => onSliderChange(bet.id, parseInt(e.target.value, 10))}
-        />
-        {bet.betPercentage.toFixed(2)}%
-      </label>
-    </div>
-  );
-  */
 }
 
 function App() {
@@ -191,6 +164,7 @@ function App() {
 
   const betCount = useRef(0);
 
+  const [growthUI, setGrowthUI] = useState(0);
   const [betCountUI, setBetCountUI] = useState(0);
   const [payoutUI, setPayoutUI] = useState(0);
   const [bankrollUI, setBankrollUI] = useState(1000);
@@ -277,7 +251,10 @@ function App() {
   }
 
   const generateBets = () => {
-      let N = 3;
+      let min = 1;
+      let max = 5;
+      let N = Math.floor(Math.random() * (max - min + 1)) + min;
+      console.log(N);
       let result = [];
       let forKelly = [];
       for (let i = 0; i < N; i++) {
@@ -292,7 +269,7 @@ function App() {
       for (let i = 0; i < N; i++) {
           result[i].optimalSize = k.proportions[i];
       }
-      console.log(k.growth);
+      setGrowthUI(k.growth);
       setBets(result);
   }
 
@@ -365,6 +342,7 @@ function App() {
           </Grid>
         ))}
       </Grid>
+      <p>Expected Growth: {growthUI.toFixed(3)}</p>
       <p>{messageUI}</p>
     </Container>
     </ThemeProvider>
