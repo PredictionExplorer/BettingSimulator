@@ -285,7 +285,9 @@ function App() {
       for (let i = 0; i < N; i++) {
           result[i].optimalSize = k.proportions[i];
       }
+      result.sort((a, b) => b.probability - a.probability);
       setGrowthUI(k.growth);
+
       setBets(result);
   }
 
