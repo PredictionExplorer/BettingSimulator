@@ -143,6 +143,7 @@ function BetComponent({ bet, onSliderChange }) {
   {/* Adjust the marginBottom on each paragraph to reduce spacing */}
   <p sx={{ marginBottom: '8px' }}>Probability of Winning: {(bet.probability * 100).toFixed(2)}%</p>
   <p sx={{ marginBottom: '8px' }}>Implied odds: {(100.0 / bet.payout).toFixed(2)}% </p>
+  <p sx={{ marginBottom: '8px' }}>Edge (probability - implied): {(100 * (bet.probability - (1.0 / bet.payout))).toFixed(2)}% </p>
   <p sx={{ marginBottom: '8px' }}>Payout: {bet.payout.toFixed(2)}x </p>
   <p sx={{ marginBottom: '8px' }}>Optimal: {bet.state !== 'neutral' ? `${(bet.optimalSize * 100).toFixed(2)}%` : '?'}</p>
 
