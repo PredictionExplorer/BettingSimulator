@@ -130,32 +130,40 @@ function BetComponent({ bet, onSliderChange }) {
   }`;
 
    return (
-    <Box
-      sx={{
-        backgroundColor: bet.state === 'win' ? 'green' : (bet.state === 'lose' ? 'red' : 'gray'),
-        color: 'white', // Example of additional styling
-        padding: 2, // Theme-aware spacing
-        borderRadius: 1, // Theme-aware border radius
-      }}
-    >
-      <p>Probability of Winning: {(bet.probability * 100).toFixed(2)}%</p>
-      <p>Implied odds: {(100.0 / bet.payout).toFixed(2)}% </p>
-      <p>Payout: {bet.payout.toFixed(2)}x </p>
-      <p>Optimal: {bet.state !== 'neutral' ? `${(bet.optimalSize * 100).toFixed(2)}%` : '?'}</p>
+       <Box
+  sx={{
+    backgroundColor: bet.state === 'win' ? 'green' : (bet.state === 'lose' ? 'red' : 'gray'),
+    color: 'white',
+    padding: 2,
+    borderRadius: 1,
+    display: 'flex',
+    flexDirection: 'column',
+  }}
+>
+  {/* Adjust the marginBottom on each paragraph to reduce spacing */}
+  <p sx={{ marginBottom: '8px' }}>Probability of Winning: {(bet.probability * 100).toFixed(2)}%</p>
+  <p sx={{ marginBottom: '8px' }}>Implied odds: {(100.0 / bet.payout).toFixed(2)}% </p>
+  <p sx={{ marginBottom: '8px' }}>Payout: {bet.payout.toFixed(2)}x </p>
+  <p sx={{ marginBottom: '8px' }}>Optimal: {bet.state !== 'neutral' ? `${(bet.optimalSize * 100).toFixed(2)}%` : '?'}</p>
 
-      <label>
-        Bet Percentage of Bankroll:
-        <input
-          type="range"
-          min="0"
-          max="100"
-          step="0.01"
-          value={bet.betPercentage}
-          onChange={(e) => onSliderChange(bet.id, parseFloat(e.target.value, 10))}
-        />
-        {bet.betPercentage.toFixed(2)}%
-      </label>
-    </Box>
+  {/* For the slider and its label, you might want to keep or adjust the spacing as needed */}
+  <Box sx={{ width: '100%', mt: 2 }}>
+    <label style={{ width: '100%', display: 'block', marginBottom: '8px' }}> {/* Adjusted marginBottom here */}
+      Bet Percentage of Bankroll:
+    </label>
+    <input
+      type="range"
+      min="0"
+      max="100"
+      step="0.01"
+      value={bet.betPercentage}
+      onChange={(e) => onSliderChange(bet.id, parseFloat(e.target.value))}
+      style={{ width: '100%', display: 'block' }}
+    />
+    <Box sx={{ textAlign: 'center', mt: 1 }}>{bet.betPercentage.toFixed(2)}%</Box>
+  </Box>
+</Box>
+
   );
 }
 
