@@ -914,6 +914,38 @@ function App() {
         .slider-thumb::-moz-range-thumb:hover {
           box-shadow: 0 0 0 8px rgba(0, 102, 255, 0.1);
         }
+        
+        /* Smaller sliders for calculator mode */
+        .slider-thumb-small::-webkit-slider-thumb {
+          appearance: none;
+          width: 12px;
+          height: 12px;
+          background: #0066ff;
+          cursor: pointer;
+          border-radius: 50%;
+          border: 1px solid #fff;
+          box-shadow: 0 0 0 1px rgba(0, 102, 255, 0.3);
+          transition: all 0.2s;
+        }
+        
+        .slider-thumb-small::-webkit-slider-thumb:hover {
+          box-shadow: 0 0 0 4px rgba(0, 102, 255, 0.1);
+        }
+        
+        .slider-thumb-small::-moz-range-thumb {
+          width: 12px;
+          height: 12px;
+          background: #0066ff;
+          cursor: pointer;
+          border-radius: 50%;
+          border: 1px solid #fff;
+          box-shadow: 0 0 0 1px rgba(0, 102, 255, 0.3);
+          transition: all 0.2s;
+        }
+        
+        .slider-thumb-small::-moz-range-thumb:hover {
+          box-shadow: 0 0 0 4px rgba(0, 102, 255, 0.1);
+        }
       `}</style>
       
       {/* Welcome Modal */}

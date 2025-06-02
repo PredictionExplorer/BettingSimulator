@@ -5,7 +5,6 @@ import {
   Calculator, 
   TrendingUp, 
   DollarSign, 
-  Percent,
   ChevronDown,
   ChevronUp,
   Info,
@@ -14,7 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import CalculatorBetCard from './CalculatorBetCard';
-import TooltipComponent, { tooltipContent } from './Tooltip';
+import TooltipComponent from './Tooltip';
 import { calculatorTooltipContent } from './CalculatorTooltips';
 
 const CalculatorMode = ({ multiKellyFunction }) => {
@@ -22,41 +21,14 @@ const CalculatorMode = ({ multiKellyFunction }) => {
   const [bankroll, setBankroll] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [inputMethod, setInputMethod] = useState('probability-payout');
   
-  // Example presets
+  // Example presets - all with positive edge
   const presets = [
-    { name: "Sports Underdog", probability: 0.30, payout: 4.0 },
-    { name: "Heavy Favorite", probability: 0.80, payout: 1.25 },
-    { name: "Coin Flip Plus", probability: 0.55, payout: 2.0 },
-    { name: "Long Shot", probability: 0.15, payout: 8.0 }
+    { name: "Sports Underdog", probability: 0.35, payout: 3.5 },  // Edge: +22.5%
+    { name: "Heavy Favorite", probability: 0.85, payout: 1.25 }, // Edge: +6.25%
+    { name: "Coin Flip Plus", probability: 0.55, payout: 2.0 },  // Edge: +10%
+    { name: "Value Bet", probability: 0.40, payout: 3.0 }        // Edge: +20%
   ];
-  
-  // Convert different odds formats
-  const convertOdds = useCallback((value, fromFormat, toFormat) => {
-    let probability, payout;
-    
-    switch (fromFormat) {
-      case 'decimal':
-        payout = parseFloat(value) || 2.0;
-        probability = 0.5; // Default probability
-        break;
-      case 'american':
-        const american = parseFloat(value) || 100;
-        if (american > 0) {
-          payout = 1 + (american / 100);
-        } else {
-          payout = 1 + (100 / Math.abs(american));
-        }
-        probability = 0.5; // Default probability
-        break;
-      default:
-        probability = (parseFloat(value) || 50) / 100;
-        payout = 2.0; // Default payout
-    }
-    
-    return { probability, payout };
-  }, []);
   
   // Add a new bet
   const addBet = useCallback((preset = null) => {

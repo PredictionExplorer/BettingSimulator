@@ -16,7 +16,17 @@ const CalculatorBetCard = ({ bet, onUpdate, onRemove, index, bankroll }) => {
   };
   
   const handlePayoutChange = (value) => {
-    const payout = Math.max(1.01, parseFloat(value) || 1.01);
+    // Allow typing "10" by not immediately constraining during input
+    const rawValue = value.toString();
+    let payout;
+    
+    // If it's empty or just "1", allow it temporarily
+    if (rawValue === '' || rawValue === '1') {
+      payout = parseFloat(rawValue) || 1;
+    } else {
+      payout = Math.max(1.01, parseFloat(rawValue) || 1.01);
+    }
+    
     onUpdate(bet.id, { ...bet, payout });
   };
   
@@ -53,10 +63,10 @@ const CalculatorBetCard = ({ bet, onUpdate, onRemove, index, bankroll }) => {
       </motion.button>
       
       <div className="relative p-6 space-y-4">
-        {/* Header */}
+        {/* Header - Use index + 1 for sequential numbering */}
         <div className="flex items-center justify-between pr-12">
           <h3 className="text-lg font-bold text-white">
-            Bet #{bet.id + 1}
+            Bet #{index + 1}
           </h3>
           {hasNegativeEdge && (
             <div className="flex items-center gap-1 text-red-400">
@@ -83,6 +93,21 @@ const CalculatorBetCard = ({ bet, onUpdate, onRemove, index, bankroll }) => {
               step="0.1"
               className="w-full px-3 py-2 bg-background-tertiary border border-white/10 rounded-lg text-white focus:outline-none focus:border-primary-500 transition-colors"
             />
+            {/* Probability Slider */}
+            <div className="relative">
+              <input
+                type="range"
+                min="1"
+                max="99"
+                step="0.1"
+                value={bet.probability * 100}
+                onChange={(e) => handleProbabilityChange(e.target.value)}
+                className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb-small"
+                style={{
+                  background: `linear-gradient(to right, #0066ff 0%, #0066ff ${bet.probability * 100}%, #374151 ${bet.probability * 100}%, #374151 100%)`
+                }}
+              />
+            </div>
           </div>
           
           <div className="space-y-2">
@@ -99,6 +124,21 @@ const CalculatorBetCard = ({ bet, onUpdate, onRemove, index, bankroll }) => {
               step="0.01"
               className="w-full px-3 py-2 bg-background-tertiary border border-white/10 rounded-lg text-white focus:outline-none focus:border-primary-500 transition-colors"
             />
+            {/* Payout Slider */}
+            <div className="relative">
+              <input
+                type="range"
+                min="1.01"
+                max="20"
+                step="0.01"
+                value={bet.payout}
+                onChange={(e) => handlePayoutChange(e.target.value)}
+                className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb-small"
+                style={{
+                  background: `linear-gradient(to right, #0066ff 0%, #0066ff ${Math.min(100, ((bet.payout - 1.01) / (20 - 1.01)) * 100)}%, #374151 ${Math.min(100, ((bet.payout - 1.01) / (20 - 1.01)) * 100)}%, #374151 100%)`
+                }}
+              />
+            </div>
           </div>
         </div>
         
