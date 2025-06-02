@@ -78,8 +78,21 @@ const PrettoSlider = styled(Slider)({
   },
 });
 
-
-
+// helper to make one random bet
+function generateOneBet(minProbability, maxProbability) {
+  const p = getRandomFloat(minProbability / 100.0, maxProbability / 100.0);
+  const implied = 1 / p;
+  const b = getRandomFloat(implied, implied + (implied - 1) * 2);
+  return {
+    probability: p,
+    payout: b,
+    betPercentage: 0.0,
+    id: null,
+    optimalSize: null,
+    state: "neutral",
+    result: null,
+  };
+}
 
 function kelly(b, p) {
   const q = 1 - p;
@@ -175,7 +188,8 @@ const BetComponent = React.memo(({ bet, onSliderChange }) => {
   );
 });
 
-const BankrollChart = ({ bankrollHistory, optimalBankrollHistory }) => {
+// Memoised line chart to prevent re-render when parent renders but data unchanged
+const BankrollChart = React.memo(({ bankrollHistory, optimalBankrollHistory }) => {
   const data = {
     datasets: [
       {
@@ -220,7 +234,7 @@ const BankrollChart = ({ bankrollHistory, optimalBankrollHistory }) => {
   };
 
   return <Line data={data} options={options} />;
-};
+});
 
 function App() {
   // Track bankrolls in state so the UI updates automatically
@@ -316,7 +330,7 @@ function App() {
     setOptimalBankrollHistory(prev => [...prev, { x: prev.length, y: newOpponent }]);
   }, [bets, bankroll, opponentBankroll]);
 
-  const handleBet = () => {
+  const handleBet = useCallback(() => {
     if (gameState === "showBet") {
       let totalBetPercentage = bets.reduce((total, bet) => {
         return total + bet.betPercentage;
@@ -333,24 +347,16 @@ function App() {
       setMessageUI("Good luck!");
       setBetCountUI(betCountUI + 1);
     }
-  };
+  }, [gameState, bets, resolveBets, bankroll, opponentBankroll, betCountUI]);
 
-  const generateOneBet = () => {
-    //let p = getRandomFloat(0.05, 0.95);
-    let p = getRandomFloat(minProbability / 100.0, maxProbability / 100.0);
-    let implied = 1 / p;
-    let b = getRandomFloat(implied, implied + (implied - 1) * 2);
-    return {probability: p, payout: b, betPercentage: 0.0, id: null, optimalSize: null, state: "neutral", result: null}
-  }
-
-  const generateBets = () => {
+  const generateBets = useCallback(() => {
     let min = minBets;
     let max = maxBets;
     let N = Math.floor(Math.random() * (max - min + 1)) + min;
     let result = [];
     let forKelly = [];
     for (let i = 0; i < N; i++) {
-      let bet = generateOneBet();
+      let bet = generateOneBet(minProbability, maxProbability);
       bet.id = i;
       result.push(bet);
       forKelly.push(bet.probability);
@@ -365,9 +371,9 @@ function App() {
     setGrowthUI(k.growth);
 
     setBets(result);
-  }
+  }, [minBets, maxBets, minProbability, maxProbability, multi_kelly]);
 
-  const handleAddBet = () => {
+  const handleAddBet = useCallback(() => {
     let forKelly = [];
     let result = [];
     for (let i = 0; i < bets.length; i++) {
@@ -375,7 +381,7 @@ function App() {
       forKelly.push(bets[i].probability);
       forKelly.push(bets[i].payout - 1);
     }
-    let bet = generateOneBet();
+    let bet = generateOneBet(minProbability, maxProbability);
     bet.id = result.length;
     result.push(bet);
     forKelly.push(bet.probability);
@@ -386,7 +392,7 @@ function App() {
     }
     setGrowthUI(k.growth);
     setBets(result);
-  };
+  }, [bets, generateOneBet, multi_kelly, minProbability, maxProbability]);
 
   const handleMinBetsChange = () => {
     if (minBets < 1) {
