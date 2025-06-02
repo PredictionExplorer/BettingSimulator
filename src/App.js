@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import init, { multiple_kelly } from './pkg/kelly_sim';
 import './App.css';
 import Box from '@mui/material/Box'; // Import Box from MUI
@@ -113,34 +113,6 @@ function getRandomFloat(min, max) {
   return Math.random() * (max - min) + min;
 }
 
-function binarySearchForB(p, G) {
-  let g = Infinity;
-  let mid = 0;
-  let lowerBound = 1e-6;
-  let upperBound = 1e6;
-  let i=0;
-  while (Math.abs(g - G) > 1e-6) {
-    i += 1;
-    if (i > 100) break;
-    mid = (lowerBound + upperBound) / 2;
-    g = growthRate(mid, p);
-    if (g < G) {
-      lowerBound = mid;
-    } else {
-      upperBound = mid;
-    }
-  }
-  return mid;
-}
-
-function calculateOptimalBankroll(initialBankroll, growthRate, numberOfBets) {
-  // Convert the logarithmic growth rate to an effective growth rate for approximation
-  // This is a direct use for simulation purposes and may not reflect exact outcomes.
-  const effectiveGrowthRate = Math.exp(growthRate) - 1;
-  return initialBankroll * Math.pow(1 + effectiveGrowthRate, numberOfBets);
-}
-
-
 // Memorise each bet card so only the card whose data actually changes re-renders
 const BetComponent = React.memo(({ bet, onSliderChange }) => {
   const className = `bet-component ${
@@ -243,15 +215,9 @@ function App() {
   const [bankrollHistory, setBankrollHistory] = useState([{x: 0, y: 1000}]);
   const [optimalBankrollHistory, setOptimalBankrollHistory] = useState([{x: 0, y: 1000}]);
 
-  const betCount = useRef(0);
-
   const [growthUI, setGrowthUI] = useState(0);
   const [betCountUI, setBetCountUI] = useState(0);
-  const [payoutUI, setPayoutUI] = useState(0);
-  const [messageUI, setMessageUI] = useState("Good Luck!");
-  const [probabilityUI, setProbabilityUI] = useState(0.5);
   const [gameState, setGameState] = useState("showBet");
-  const [userBetUI, setUserBetUI] = useState(0);
 
   const [minBets, setMinBets] = useState(1);
   const [maxBets, setMaxBets] = useState(2);
@@ -260,7 +226,7 @@ function App() {
   const [maxProbability, setMaxProbability] = useState(95);
   const [isChartVisible, setIsChartVisible] = useState(false);
 
-  const [isWasmReady, setWasmReady] = useState(false);
+  const [isWasmReady, setWasmReady] = useState(false); // retained; could be used later
 
   const [bets, setBets] = useState([]);
 
@@ -273,13 +239,16 @@ function App() {
   }, []);
 
   useEffect(() => {
-    init().then(() => {
-      setWasmReady(true);
-      generateBets();
-    }).catch(err => console.error("Error initializing Wasm module:", err));
+    init()
+      .then(() => {
+        setWasmReady(true);
+        generateBets();
+      })
+      .catch((err) => console.error("Error initializing Wasm module:", err));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const multi_kelly = (input) => {
+  const multi_kelly = useCallback((input) => {
     const inputJson = JSON.stringify(input);
 
     const rustString = multiple_kelly(inputJson);
@@ -289,7 +258,7 @@ function App() {
         proportions: proportions,
         growth: growth
     }
-  };
+  }, []);
 
   const resolveBets = useCallback(() => {
     let total = 0.0;
@@ -316,18 +285,11 @@ function App() {
     const userDelta = bankroll * total;
     const kellyDelta = opponentBankroll * opponentTotal;
 
-    setMessageUI(
-      `Your Bankroll: ${(userDelta >= 0 ? '+' : '')}${userDelta.toFixed(2)} ` +
-      `Kelly Bankroll: ${(kellyDelta >= 0 ? '+' : '')}${kellyDelta.toFixed(2)}`
-    );
+    setBankroll(bankroll + userDelta);
+    setOpponentBankroll(opponentBankroll + kellyDelta);
 
-    const newBankroll = bankroll + userDelta;
-    const newOpponent = opponentBankroll + kellyDelta;
-    setBankroll(newBankroll);
-    setOpponentBankroll(newOpponent);
-
-    setBankrollHistory(prev => [...prev, { x: prev.length, y: newBankroll }]);
-    setOptimalBankrollHistory(prev => [...prev, { x: prev.length, y: newOpponent }]);
+    setBankrollHistory(prev => [...prev, { x: prev.length, y: bankroll + userDelta }]);
+    setOptimalBankrollHistory(prev => [...prev, { x: prev.length, y: opponentBankroll + kellyDelta }]);
   }, [bets, bankroll, opponentBankroll]);
 
   const handleBet = useCallback(() => {
@@ -425,6 +387,8 @@ function App() {
       setMaxProbability(minProbability);
     }
   };
+
+  const [messageUI, setMessageUI] = useState("Good Luck!");
 
   return (
     <ThemeProvider theme={theme}>
