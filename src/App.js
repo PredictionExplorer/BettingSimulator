@@ -1,84 +1,39 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import init, { multiple_kelly } from './pkg/kelly_sim';
-import './App.css';
-import Box from '@mui/material/Box'; // Import Box from MUI
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign, 
+  Activity, 
+  BarChart3,
+  Plus,
+  ChevronRight,
+  Sparkles,
+  Target,
+  Percent,
+  Award
+} from 'lucide-react';
+import CountUp from 'react-countup';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { getRandomFloat } from './mathUtils';
+import { cn } from './utils/cn';
+import confetti from 'canvas-confetti';
 
-import Container from '@mui/material/Container';
-import TextField from '@mui/material/TextField';
-
-
-import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Typography from '@mui/material/Typography';
-import Slider from '@mui/material/Slider';
-import Grid from '@mui/material/Grid';
-import { styled } from '@mui/material/styles';
-import { createTheme, ThemeProvider, CssBaseline } from '@mui/material';
-
-import Switch from '@mui/material/Switch';
-import FormControlLabel from '@mui/material/FormControlLabel'; // For labeling the switch
-
-import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend } from 'chart.js';
-
-import { kelly, growthRate, getRandomFloat } from './mathUtils';
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
-
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-    background: {
-      default: '#424242', // Lighter dark shade
-    },
-    primary: {
-      main: '#bb86fc', // Customizable
-    },
-    secondary: {
-      main: '#03dac6', // Customizable
-    },
-    // Adjust text colors if needed to improve readability
-    text: {
-      primary: '#ffffff',
-      secondary: 'rgba(255, 255, 255, 0.7)',
-    },
-  },
-  // You can also customize other theme aspects here
-});
-
-const PrettoSlider = styled(Slider)({
-  color: '#52af77',
-  height: 8,
-  '& .MuiSlider-thumb': {
-    height: 24,
-    width: 24,
-    backgroundColor: '#fff',
-    border: '2px solid currentColor',
-    '&:focus, &:hover, &.Mui-active': {
-      boxShadow: 'inherit',
-    },
-  },
-  '& .MuiSlider-valueLabel': {
-    lineHeight: 1.2,
-    fontSize: 12,
-    background: 'unset',
-    padding: 0,
-    width: 32,
-    height: 32,
-    borderRadius: '50% 50% 50% 0',
-    backgroundColor: '#52af77',
-    transformOrigin: 'bottom left',
-    transform: 'translate(50%, -100%) rotate(-45deg) scale(0)',
-    '&:before': { display: 'none' },
-    '&.MuiSlider-valueLabelOpen': {
-      transform: 'translate(50%, -100%) rotate(-45deg) scale(1)',
-    },
-    '& > *': {
-      transform: 'rotate(45deg)',
-    },
-  },
-});
+// Custom tooltip for charts
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="glass-card p-3">
+        <p className="text-sm text-gray-300">{`Bet #${label}`}</p>
+        <p className="text-sm font-semibold text-white">
+          ${payload[0].value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
 
 // helper to make one random bet
 function generateOneBet(minProbability, maxProbability) {
@@ -96,98 +51,201 @@ function generateOneBet(minProbability, maxProbability) {
   };
 }
 
-// Memorise each bet card so only the card whose data actually changes re-renders
-const BetComponent = React.memo(({ bet, onSliderChange }) => {
-  return (
-    <Box
-      sx={{
-        backgroundColor: bet.state === 'win' ? 'green' : (bet.state === 'lose' ? 'red' : 'gray'),
-        color: 'white',
-        padding: 2,
-        borderRadius: 1,
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      {/* Adjust the marginBottom on each paragraph to reduce spacing */}
-      <p sx={{ marginBottom: '8px' }}>Probability of Winning: {(bet.probability * 100).toFixed(2)}%</p>
-      <p sx={{ marginBottom: '8px' }}>Implied odds: {(100.0 / bet.payout).toFixed(2)}% </p>
-      <p sx={{ marginBottom: '8px' }}>Edge (probability - implied): {(100 * (bet.probability - (1.0 / bet.payout))).toFixed(2)}% </p>
-      <p sx={{ marginBottom: '8px' }}>Payout: {bet.payout.toFixed(2)}x </p>
-      <p sx={{ marginBottom: '8px' }}>Optimal: {bet.state !== 'neutral' ? `${(bet.optimalSize * 100).toFixed(2)}%` : '?'}</p>
+// Modern Bet Card Component
+const BetCard = React.memo(({ bet, onSliderChange, index }) => {
+  const stateColors = {
+    win: 'from-green-500/20 to-green-600/20 border-green-500/50',
+    lose: 'from-red-500/20 to-red-600/20 border-red-500/50',
+    neutral: 'from-white/5 to-white/10 border-white/20'
+  };
 
-      {/* For the slider and its label, you might want to keep or adjust the spacing as needed */}
-      <Box sx={{ width: '100%', mt: 2 }}>
-        <Typography gutterBottom>Bet Percentage of Bankroll</Typography>
-        <PrettoSlider
-          aria-labelledby={`bet-slider-${bet.id}`}
-          value={bet.betPercentage}
-          min={0}
-          max={100}
-          step={0.01}
-          valueLabelDisplay="auto"
-          onChange={(e, val) => onSliderChange(bet.id, val)}
+  const edge = bet.probability - (1.0 / bet.payout);
+  const edgePercentage = (edge * 100).toFixed(2);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ duration: 0.3, delay: index * 0.05 }}
+      whileHover={{ y: -5 }}
+      className={cn(
+        "relative group overflow-hidden rounded-2xl bg-gradient-to-br backdrop-blur-xl border transition-all duration-300",
+        stateColors[bet.state],
+        "hover:shadow-2xl hover:shadow-primary-500/10"
+      )}
+    >
+      {/* Animated background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-r from-primary-500/0 via-primary-500/5 to-primary-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
+      {/* Win/Loss indicator */}
+      {bet.state !== 'neutral' && (
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className={cn(
+            "absolute top-3 right-3 w-3 h-3 rounded-full ring-4",
+            bet.state === 'win' ? 'bg-green-400 ring-green-400/20' : 'bg-red-400 ring-red-400/20'
+          )}
         />
-        <Box sx={{ textAlign: 'center', mt: 1 }}>{bet.betPercentage.toFixed(2)}%</Box>
-      </Box>
-    </Box>
+      )}
+
+      <div className="relative p-6 space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold text-white flex items-center gap-2">
+            <Target className="w-5 h-5 text-primary-400" />
+            Bet #{bet.id + 1}
+          </h3>
+          {bet.state !== 'neutral' && bet.optimalSize && (
+            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-primary-500/20 text-primary-300">
+              Optimal: {(bet.optimalSize * 100).toFixed(2)}%
+            </span>
+          )}
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5 text-gray-400 text-xs">
+              <Percent className="w-3 h-3" />
+              <span>Win Probability</span>
+            </div>
+            <p className="font-mono font-semibold text-white">
+              {(bet.probability * 100).toFixed(1)}%
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5 text-gray-400 text-xs">
+              <DollarSign className="w-3 h-3" />
+              <span>Payout</span>
+            </div>
+            <p className="font-mono font-semibold text-white">
+              {bet.payout.toFixed(2)}x
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5 text-gray-400 text-xs">
+              <Activity className="w-3 h-3" />
+              <span>Implied Odds</span>
+            </div>
+            <p className="font-mono font-semibold text-white">
+              {(100.0 / bet.payout).toFixed(1)}%
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5 text-gray-400 text-xs">
+              <TrendingUp className="w-3 h-3" />
+              <span>Edge</span>
+            </div>
+            <p className={cn(
+              "font-mono font-semibold",
+              edge > 0 ? "text-green-400" : "text-red-400"
+            )}>
+              {edge > 0 ? '+' : ''}{edgePercentage}%
+            </p>
+          </div>
+        </div>
+
+        {/* Modern Slider */}
+        <div className="space-y-2 pt-2">
+          <div className="flex justify-between items-center">
+            <label className="text-sm font-medium text-gray-300">Bet Amount</label>
+            <span className="text-sm font-bold text-primary-400">{bet.betPercentage.toFixed(2)}%</span>
+          </div>
+          
+          <div className="relative">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="0.1"
+              value={bet.betPercentage}
+              onChange={(e) => onSliderChange(bet.id, parseFloat(e.target.value))}
+              className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb"
+              style={{
+                background: `linear-gradient(to right, #0066ff 0%, #0066ff ${bet.betPercentage}%, #374151 ${bet.betPercentage}%, #374151 100%)`
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 });
 
-// Memoised line chart to prevent re-render when parent renders but data unchanged
-const BankrollChart = React.memo(({ bankrollHistory, optimalBankrollHistory }) => {
-  const data = {
-    datasets: [
-      {
-        label: 'Bankroll',
-        data: bankrollHistory,
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.5)',
-      },
-      {
-        label: 'Optimal Bankroll',
-        data: optimalBankrollHistory,
-        borderColor: 'rgb(255, 99, 132)',
-        backgroundColor: 'rgba(255, 99, 132, 0.5)',
-        tension: 0.4,
-      }
-    ],
+// Stat Card Component
+const StatCard = ({ title, value, icon: Icon, trend, color = "primary" }) => {
+  const colorClasses = {
+    primary: "from-primary-500/20 to-primary-600/20",
+    success: "from-green-500/20 to-green-600/20",
+    warning: "from-yellow-500/20 to-yellow-600/20"
   };
 
-  const options = {
-    scales: {
-      x: {
-        type: 'linear',
-        position: 'bottom',
-        title: {
-          display: true,
-          text: 'Bet Number'
-        }
-      },
-      y: {
-        title: {
-          display: true,
-          text: 'Bankroll'
-        }
-      }
-    },
-    elements: {
-      line: {
-        tension: 0.4 // This is to make the line a bit smoother
-      }
-    },
-    responsive: true,
-  };
-
-  return <Line data={data} options={options} />;
-});
+  return (
+    <motion.div
+      whileHover={{ y: -5 }}
+      className="relative overflow-hidden rounded-2xl glass-card glass-card-hover p-6"
+    >
+      <div className={cn(
+        "absolute inset-0 bg-gradient-to-br opacity-30",
+        colorClasses[color]
+      )} />
+      
+      <div className="relative">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-medium text-gray-300">{title}</h3>
+          <Icon className={cn(
+            "w-5 h-5",
+            color === "primary" ? "text-primary-400" : 
+            color === "success" ? "text-green-400" : "text-yellow-400"
+          )} />
+        </div>
+        
+        <div className="flex items-end justify-between">
+          <p className="text-2xl font-bold text-white">
+            {typeof value === 'number' ? (
+              <CountUp
+                end={value}
+                duration={0.5}
+                prefix={title.includes('Bankroll') ? '$' : ''}
+                decimals={title.includes('Bankroll') ? 2 : 0}
+                separator=","
+              />
+            ) : value}
+          </p>
+          
+          {trend !== undefined && (
+            <div className="flex items-center gap-1">
+              {trend > 0 ? (
+                <TrendingUp className="w-4 h-4 text-green-400" />
+              ) : (
+                <TrendingDown className="w-4 h-4 text-red-400" />
+              )}
+              <span className={cn(
+                "text-sm font-semibold",
+                trend > 0 ? "text-green-400" : "text-red-400"
+              )}>
+                {Math.abs(trend).toFixed(1)}%
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 function App() {
-  // Track bankrolls in state so the UI updates automatically
   const [bankroll, setBankroll] = useState(1000);
   const [opponentBankroll, setOpponentBankroll] = useState(1000);
   const [bankrollHistory, setBankrollHistory] = useState([{x: 0, y: 1000}]);
   const [optimalBankrollHistory, setOptimalBankrollHistory] = useState([{x: 0, y: 1000}]);
+  const [previousBankroll, setPreviousBankroll] = useState(1000);
+  const [previousOpponentBankroll, setPreviousOpponentBankroll] = useState(1000);
 
   const [growthUI, setGrowthUI] = useState(0);
   const [betCountUI, setBetCountUI] = useState(0);
@@ -200,9 +258,12 @@ function App() {
   const [maxProbability, setMaxProbability] = useState(95);
   const [isChartVisible, setIsChartVisible] = useState(false);
 
-  const [isWasmReady, setWasmReady] = useState(false); // retained; could be used later
-
+  const [isWasmReady, setWasmReady] = useState(false);
   const [bets, setBets] = useState([]);
+  const [messageUI, setMessageUI] = useState("Good Luck!");
+
+  const bankrollTrend = ((bankroll - previousBankroll) / previousBankroll) * 100;
+  const opponentTrend = ((opponentBankroll - previousOpponentBankroll) / previousOpponentBankroll) * 100;
 
   const handleSliderChange = useCallback((id, newPercentage) => {
     setBets(prevBets =>
@@ -224,7 +285,6 @@ function App() {
 
   const multi_kelly = useCallback((input) => {
     const inputJson = JSON.stringify(input);
-
     const rustString = multiple_kelly(inputJson);
     let proportions = JSON.parse(rustString);
     let growth = proportions.pop();
@@ -235,6 +295,9 @@ function App() {
   }, []);
 
   const resolveBets = useCallback(() => {
+    setPreviousBankroll(bankroll);
+    setPreviousOpponentBankroll(opponentBankroll);
+
     let total = 0.0;
     let opponentTotal = 0.0;
 
@@ -259,11 +322,32 @@ function App() {
     const userDelta = bankroll * total;
     const kellyDelta = opponentBankroll * opponentTotal;
 
-    setBankroll(bankroll + userDelta);
-    setOpponentBankroll(opponentBankroll + kellyDelta);
+    const newBankroll = bankroll + userDelta;
+    const newOpponentBankroll = opponentBankroll + kellyDelta;
 
-    setBankrollHistory(prev => [...prev, { x: prev.length, y: bankroll + userDelta }]);
-    setOptimalBankrollHistory(prev => [...prev, { x: prev.length, y: opponentBankroll + kellyDelta }]);
+    setBankroll(newBankroll);
+    setOpponentBankroll(newOpponentBankroll);
+
+    setBankrollHistory(prev => [...prev, { x: prev.length, y: newBankroll }]);
+    setOptimalBankrollHistory(prev => [...prev, { x: prev.length, y: newOpponentBankroll }]);
+
+    // Celebrate big wins with confetti!
+    const winPercentage = (userDelta / bankroll) * 100;
+    if (winPercentage > 10) {
+      // Big win - lots of confetti
+      confetti({
+        particleCount: 200,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    } else if (winPercentage > 5) {
+      // Medium win - some confetti
+      confetti({
+        particleCount: 100,
+        spread: 50,
+        origin: { y: 0.6 }
+      });
+    }
   }, [bets, bankroll, opponentBankroll]);
 
   const handleBet = useCallback(() => {
@@ -274,8 +358,9 @@ function App() {
       if (totalBetPercentage <= 100) {
         resolveBets();
         setGameState("showNextBet");
+        setMessageUI("Results are in!");
       } else {
-        setMessageUI("You bet more than your bankroll! Reduce your bets.");
+        setMessageUI("⚠️ Total bets exceed 100% of bankroll!");
       }
     } else {
       generateBets();
@@ -283,7 +368,8 @@ function App() {
       setMessageUI("Good luck!");
       setBetCountUI(betCountUI + 1);
     }
-  }, [gameState, bets, resolveBets, bankroll, opponentBankroll, betCountUI]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, bets, resolveBets, betCountUI]);
 
   const generateBets = useCallback(() => {
     let min = minBets;
@@ -328,190 +414,312 @@ function App() {
     }
     setGrowthUI(k.growth);
     setBets(result);
-  }, [bets, generateOneBet, multi_kelly, minProbability, maxProbability]);
+  }, [bets, minProbability, maxProbability, multi_kelly]);
 
-  const handleMinBetsChange = () => {
-    if (minBets < 1) {
-      setMinBets(1);
-    } else if (minBets > maxBets) {
-      setMinBets(maxBets);
-    }
-  };
-
-  const handleMaxBetsChange = () => {
-    if (maxBets > 15) {
-      setMaxBets(15);
-    } else if (maxBets < minBets) {
-      setMaxBets(minBets);
-    }
-  };
-
-  const handleMinProbabilityChange = () => {
-    if (minProbability < 1) {
-      setMinProbability(1);
-    } else if (minProbability > maxProbability) {
-      setMinProbability(maxProbability);
-    }
-  };
-
-  const handleMaxProbabilityChange = () => {
-    if (maxProbability > 100) {
-      setMaxProbability(100);
-    } else if (maxProbability < minProbability) {
-      setMaxProbability(minProbability);
-    }
-  };
-
-  const [messageUI, setMessageUI] = useState("Good Luck!");
+  // Show loading state while WASM initializes
+  if (!isWasmReady) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background-primary via-purple-900/20 to-background-primary flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <div className="relative">
+            <div className="w-20 h-20 mx-auto mb-6 relative">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0 rounded-full border-4 border-primary-500/20 border-t-primary-500"
+              />
+              <BarChart3 className="w-10 h-10 text-primary-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-2">Loading Betting Simulator</h2>
+          <p className="text-gray-400">Initializing WASM module...</p>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
-    <ThemeProvider theme={theme}>
-    <CssBaseline />
-    <Container maxWidth="lg" style={{ marginTop: '20px' }}>
-      {/* Bankroll Information in Cards */}
-      <Grid container spacing={2} justifyContent="center" style={{ marginBottom: '20px' }}>
-        <Grid item xs={12} sm={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" component="h2">
-                Your Bankroll
-              </Typography>
-              <Typography variant="body1">
-                ${bankroll.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+    <div className="min-h-screen bg-gradient-to-br from-background-primary via-purple-900/20 to-background-primary">
+      {/* Animated background patterns */}
+      <div className="fixed inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float" style={{ animationDelay: '2s' }} />
+      </div>
 
-        <Grid item xs={12} sm={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" component="h2">
-                Optimal Bankroll
-              </Typography>
-              <Typography variant="body1">
-                ${opponentBankroll.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+      {/* Main Content */}
+      <div className="relative z-10">
+        {/* Header */}
+        <motion.header 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="backdrop-blur-xl bg-background-secondary/50 border-b border-white/10"
+        >
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary-500/20">
+                  <BarChart3 className="w-6 h-6 text-primary-400" />
+                </div>
+                <h1 className="text-2xl font-bold text-white">Betting Simulator</h1>
+              </div>
+              
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsChartVisible(!isChartVisible)}
+                className="btn-secondary flex items-center gap-2"
+              >
+                <Activity className="w-4 h-4" />
+                {isChartVisible ? 'Hide' : 'Show'} Chart
+              </motion.button>
+            </div>
+          </div>
+        </motion.header>
 
-        <Grid item xs={12} sm={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" component="h2">
-                Number of Bets
-              </Typography>
-              <Typography variant="body1">
-                {betCountUI}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      <Typography variant="h4" component="h1" gutterBottom style={{ textAlign: 'center', marginBottom: '20px' }}>
-        Betting Simulator
-      </Typography>
-
-      {isChartVisible && (
-          <BankrollChart bankrollHistory={bankrollHistory} optimalBankrollHistory={optimalBankrollHistory} />
-      )}
-
-      <Grid container spacing={2} justify="center" style={{ marginBottom: '20px' }}>
-      <Grid item>
-        <Button variant="contained" color="primary" onClick={handleBet} style={{ margin: '10px' }}>
-          {gameState === "showBet" ? "Bet" : "Next Bet"}
-        </Button>
-      </Grid>
-      <Grid item>
-        <Button variant="contained" color="primary" onClick={handleAddBet} style={{ margin: '10px' }}>
-          Add Bet (experimental)
-        </Button>
-      </Grid>
-
-      <Grid item>
-      <FormControlLabel
-          control={
-            <Switch
-              checked={isChartVisible}
-              onChange={() => setIsChartVisible(!isChartVisible)}
-              name="chartVisibilityToggle"
+        {/* Main Container */}
+        <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <StatCard
+              title="Your Bankroll"
+              value={bankroll}
+              icon={DollarSign}
+              trend={bankrollTrend}
               color="primary"
             />
-          }
-          label={isChartVisible ? "Hide Chart" : "Show Chart"}
-        />
-      </Grid>
-
-    </Grid>
-
-
-      {/* Grid container for bets */}
-      <Grid container spacing={2}>
-        {bets.map(bet => (
-          <Grid item xs={12} sm={6} md={4} key={bet.id}>
-            <BetComponent
-              bet={bet}
-              onSliderChange={handleSliderChange}
+            <StatCard
+              title="Optimal Bankroll"
+              value={opponentBankroll}
+              icon={Award}
+              trend={opponentTrend}
+              color="success"
             />
-          </Grid>
-        ))}
-      </Grid>
-      <Grid container spacing={2} justifyContent="center" style={{ marginTop: '20px' }}>
-      <Grid item xs={12} sm={6} md={3}>
-        <TextField
-          label="Minimum Number of Bets"
-          type="number"
-          value={minBets}
-          onChange={(e) => setMinBets(Number(e.target.value))}
-          onBlur={handleMinBetsChange}
-          variant="outlined"
-          fullWidth
-        />
-      </Grid>
-      <Grid item xs={12} sm={6} md={3}>
-        <TextField
-          label="Maximum Number of Bets"
-          type="number"
-          value={maxBets}
-          onChange={(e) => setMaxBets(Number(e.target.value))}
-          onBlur={handleMaxBetsChange}
-          variant="outlined"
-          fullWidth
-        />
-      </Grid>
-    </Grid>
-      <Grid container spacing={2} justifyContent="center" style={{ marginTop: '20px' }}>
-      <Grid item xs={12} sm={6} md={3}>
-        <TextField
-          label="Minimum Probability"
-          type="number"
-          value={minProbability}
-          onChange={(e) => setMinProbability(Number(e.target.value))}
-          onBlur={handleMinProbabilityChange} // Validate on blur
-          variant="outlined"
-          fullWidth
-        />
-      </Grid>
-      <Grid item xs={12} sm={6} md={3}>
-        <TextField
-          label="Maximum Probability"
-          type="number"
-          value={maxProbability}
-          onChange={(e) => setMaxProbability(Number(e.target.value))}
-          onBlur={handleMaxProbabilityChange} // Validate on blur
-          variant="outlined"
-          fullWidth
-        />
-      </Grid>
-    </Grid>
-      <p>Expected Growth: {growthUI.toFixed(3)}</p>
-      <p>{messageUI}</p>
-    </Container>
-    </ThemeProvider>
-  );
+            <StatCard
+              title="Total Bets"
+              value={betCountUI}
+              icon={Activity}
+              color="warning"
+            />
+          </div>
 
+          {/* Chart Section */}
+          <AnimatePresence>
+            {isChartVisible && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="glass-card p-6"
+              >
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-primary-400" />
+                  Bankroll History
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={bankrollHistory}>
+                    <defs>
+                      <linearGradient id="colorUser" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0066ff" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#0066ff" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorOptimal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis dataKey="x" stroke="#9ca3af" />
+                    <YAxis stroke="#9ca3af" />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="y"
+                      stroke="#0066ff"
+                      fillOpacity={1}
+                      fill="url(#colorUser)"
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+                
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={optimalBankrollHistory}>
+                    <defs>
+                      <linearGradient id="colorOptimal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis dataKey="x" stroke="#9ca3af" />
+                    <YAxis stroke="#9ca3af" />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="y"
+                      stroke="#10b981"
+                      fillOpacity={1}
+                      fill="url(#colorOptimal)"
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-4 justify-center">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleBet}
+              className="btn-primary flex items-center gap-2 text-lg px-8 py-4"
+            >
+              {gameState === "showBet" ? (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  Place Bets
+                </>
+              ) : (
+                <>
+                  <ChevronRight className="w-5 h-5" />
+                  Next Round
+                </>
+              )}
+            </motion.button>
+            
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleAddBet}
+              className="btn-secondary flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Add Bet
+            </motion.button>
+          </div>
+
+          {/* Message */}
+          <motion.div
+            key={messageUI}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center"
+          >
+            <p className="text-lg font-medium text-gray-300">{messageUI}</p>
+            {growthUI > 0 && (
+              <p className="text-sm text-gray-400 mt-1">
+                Expected Growth: <span className="text-primary-400 font-semibold">{growthUI.toFixed(3)}</span>
+              </p>
+            )}
+          </motion.div>
+
+          {/* Bets Grid */}
+          <motion.div
+            layout
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          >
+            <AnimatePresence>
+              {bets.map((bet, index) => (
+                <BetCard
+                  key={bet.id}
+                  bet={bet}
+                  index={index}
+                  onSliderChange={handleSliderChange}
+                />
+              ))}
+            </AnimatePresence>
+          </motion.div>
+
+          {/* Settings Section */}
+          <div className="glass-card p-6 space-y-4">
+            <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-300">Min Bets</label>
+                <input
+                  type="number"
+                  value={minBets}
+                  onChange={(e) => setMinBets(Math.max(1, Math.min(parseInt(e.target.value) || 1, maxBets)))}
+                  className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-300">Max Bets</label>
+                <input
+                  type="number"
+                  value={maxBets}
+                  onChange={(e) => setMaxBets(Math.max(minBets, Math.min(parseInt(e.target.value) || 15, 15)))}
+                  className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-300">Min Probability %</label>
+                <input
+                  type="number"
+                  value={minProbability}
+                  onChange={(e) => setMinProbability(Math.max(1, Math.min(parseInt(e.target.value) || 1, maxProbability)))}
+                  className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-300">Max Probability %</label>
+                <input
+                  type="number"
+                  value={maxProbability}
+                  onChange={(e) => setMaxProbability(Math.max(minProbability, Math.min(parseInt(e.target.value) || 100, 100)))}
+                  className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* Custom styles for range input */}
+      <style jsx>{`
+        .slider-thumb::-webkit-slider-thumb {
+          appearance: none;
+          width: 20px;
+          height: 20px;
+          background: #0066ff;
+          cursor: pointer;
+          border-radius: 50%;
+          border: 2px solid #fff;
+          box-shadow: 0 0 0 1px rgba(0, 102, 255, 0.5);
+          transition: all 0.2s;
+        }
+        
+        .slider-thumb::-webkit-slider-thumb:hover {
+          box-shadow: 0 0 0 8px rgba(0, 102, 255, 0.1);
+        }
+        
+        .slider-thumb::-moz-range-thumb {
+          width: 20px;
+          height: 20px;
+          background: #0066ff;
+          cursor: pointer;
+          border-radius: 50%;
+          border: 2px solid #fff;
+          box-shadow: 0 0 0 1px rgba(0, 102, 255, 0.5);
+          transition: all 0.2s;
+        }
+        
+        .slider-thumb::-moz-range-thumb:hover {
+          box-shadow: 0 0 0 8px rgba(0, 102, 255, 0.1);
+        }
+      `}</style>
+    </div>
+  );
 }
 
 export default App;
