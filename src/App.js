@@ -22,6 +22,7 @@ import confetti from 'canvas-confetti';
 import WelcomeModal from './components/WelcomeModal';
 import TooltipComponent, { tooltipContent } from './components/Tooltip';
 import HowItWorksButton from './components/HowItWorksButton';
+import BetQualityIndicator from './components/BetQualityIndicator';
 
 // Custom tooltip for charts
 const CustomTooltip = ({ active, payload, label }) => {
@@ -56,14 +57,39 @@ function generateOneBet(minProbability, maxProbability) {
 
 // Modern Bet Card Component
 const BetCard = React.memo(({ bet, onSliderChange, index }) => {
+  const edge = bet.probability - (1.0 / bet.payout);
+  const edgePercentage = (edge * 100).toFixed(2);
+
   const stateColors = {
     win: 'from-green-500/20 to-green-600/20 border-green-500/50',
     lose: 'from-red-500/20 to-red-600/20 border-red-500/50',
     neutral: 'from-white/5 to-white/10 border-white/20'
   };
 
-  const edge = bet.probability - (1.0 / bet.payout);
-  const edgePercentage = (edge * 100).toFixed(2);
+  // Get contextual feedback for wins/losses
+  const getResultFeedback = () => {
+    if (bet.state === 'neutral') return null;
+    
+    const isWin = bet.state === 'win';
+    const probability = bet.probability * 100;
+    
+    let mainText = isWin ? '🎉 You won the bet!' : '❌ You lost the bet';
+    let subText = '';
+    
+    if (isWin && probability < 30) {
+      subText = '🍀 Lucky win!';
+    } else if (isWin && probability < 50) {
+      subText = '😎 Nice underdog win!';
+    } else if (!isWin && probability > 70) {
+      subText = '😔 Unlucky loss!';
+    } else if (!isWin && probability > 85) {
+      subText = '😱 Very unlucky!';
+    }
+    
+    return { mainText, subText };
+  };
+
+  const resultFeedback = getResultFeedback();
 
   return (
     <motion.div
@@ -114,6 +140,33 @@ const BetCard = React.memo(({ bet, onSliderChange, index }) => {
             </span>
           )}
         </div>
+
+        {/* Win/Loss Result Feedback */}
+        {resultFeedback && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-2"
+          >
+            <p className={cn(
+              "text-sm font-semibold",
+              bet.state === 'win' ? 'text-green-400' : 'text-red-400'
+            )}>
+              {resultFeedback.mainText}
+            </p>
+            {resultFeedback.subText && (
+              <p className="text-xs text-gray-400 mt-1">{resultFeedback.subText}</p>
+            )}
+          </motion.div>
+        )}
+
+        {/* Add Bet Quality Indicator - only show after betting */}
+        {bet.state !== 'neutral' && (
+          <BetQualityIndicator 
+            betPercentage={bet.betPercentage}
+            optimalSize={bet.optimalSize}
+          />
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
@@ -273,7 +326,7 @@ function App() {
   const [gameState, setGameState] = useState("showBet");
 
   const [minBets, setMinBets] = useState(1);
-  const [maxBets, setMaxBets] = useState(2);
+  const [maxBets, setMaxBets] = useState(3);
 
   const [minProbability, setMinProbability] = useState(5);
   const [maxProbability, setMaxProbability] = useState(95);
@@ -421,7 +474,6 @@ function App() {
     for (let i = 0; i < N; i++) {
       result[i].optimalSize = k.proportions[i];
     }
-    result.sort((a, b) => b.probability - a.probability);
     setGrowthUI(k.growth);
 
     setBets(result);
@@ -641,41 +693,6 @@ function App() {
             )}
           </AnimatePresence>
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-4 justify-center">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleBet}
-              className="btn-primary flex items-center gap-2 text-lg px-8 py-4 relative group"
-            >
-              {gameState === "showBet" ? (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  Place Bets
-                  <TooltipComponent {...tooltipContent.placeBets} position="bottom" />
-                </>
-              ) : (
-                <>
-                  <ChevronRight className="w-5 h-5" />
-                  Next Round
-                  <TooltipComponent {...tooltipContent.nextRound} position="bottom" />
-                </>
-              )}
-            </motion.button>
-            
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleAddBet}
-              className="btn-secondary flex items-center gap-2 relative"
-            >
-              <Plus className="w-5 h-5" />
-              Add Bet
-              <TooltipComponent {...tooltipContent.addBet} position="bottom" />
-            </motion.button>
-          </div>
-
           {/* Message */}
           <motion.div
             key={messageUI}
@@ -691,6 +708,52 @@ function App() {
                 <TooltipComponent {...tooltipContent.expectedGrowth} />
               </p>
             )}
+          </motion.div>
+
+          {/* Action Buttons - Moved to more visible location */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card p-6 mx-auto max-w-2xl"
+          >
+            <div className="flex flex-wrap gap-4 justify-center">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleBet}
+                className="btn-primary flex items-center gap-2 text-lg px-8 py-4 relative group shadow-lg"
+              >
+                {gameState === "showBet" ? (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    Place Bets
+                    <TooltipComponent {...tooltipContent.placeBets} position="bottom" />
+                  </>
+                ) : (
+                  <>
+                    <ChevronRight className="w-5 h-5" />
+                    Next Round
+                    <TooltipComponent {...tooltipContent.nextRound} position="bottom" />
+                  </>
+                )}
+              </motion.button>
+              
+              {gameState === "showBet" && (
+                <motion.button
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleAddBet}
+                  className="btn-secondary flex items-center gap-2 relative text-lg px-6 py-4"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add Bet
+                  <TooltipComponent {...tooltipContent.addBet} position="bottom" />
+                </motion.button>
+              )}
+            </div>
           </motion.div>
 
           {/* Bets Grid */}
