@@ -331,11 +331,11 @@ function App() {
   const [betCountUI, setBetCountUI] = useState(0);
   const [gameState, setGameState] = useState("showBet");
 
-  const [minBets, setMinBets] = useState(1);
-  const [maxBets, setMaxBets] = useState(3);
+  const [minBets, setMinBets] = useState('1');
+  const [maxBets, setMaxBets] = useState('3');
 
-  const [minProbability, setMinProbability] = useState(5);
-  const [maxProbability, setMaxProbability] = useState(95);
+  const [minProbability, setMinProbability] = useState('5');
+  const [maxProbability, setMaxProbability] = useState('95');
   const [isChartVisible, setIsChartVisible] = useState(false);
 
   const [isWasmReady, setWasmReady] = useState(false);
@@ -463,13 +463,15 @@ function App() {
   }, [gameState, bets, resolveBets, betCountUI]);
 
   const generateBets = useCallback(() => {
-    let min = minBets;
-    let max = maxBets;
+    let min = parseInt(minBets) || 1;
+    let max = parseInt(maxBets) || 3;
+    let minProb = parseInt(minProbability) || 5;
+    let maxProb = parseInt(maxProbability) || 95;
     let N = Math.floor(Math.random() * (max - min + 1)) + min;
     let result = [];
     let forKelly = [];
     for (let i = 0; i < N; i++) {
-      let bet = generateOneBet(minProbability, maxProbability);
+      let bet = generateOneBet(minProb, maxProb);
       bet.id = i;
       result.push(bet);
       forKelly.push(bet.probability);
@@ -493,7 +495,9 @@ function App() {
       forKelly.push(bets[i].probability);
       forKelly.push(bets[i].payout - 1);
     }
-    let bet = generateOneBet(minProbability, maxProbability);
+    let minProb = parseInt(minProbability) || 5;
+    let maxProb = parseInt(maxProbability) || 95;
+    let bet = generateOneBet(minProb, maxProb);
     bet.id = result.length;
     result.push(bet);
     forKelly.push(bet.probability);
@@ -517,6 +521,10 @@ function App() {
     setBetCountUI(0);
     setGameState("showBet");
     setMessageUI("Good Luck!");
+    setMinBets('1');
+    setMaxBets('3');
+    setMinProbability('5');
+    setMaxProbability('95');
     generateBets();
   }, [generateBets]);
 
@@ -832,7 +840,12 @@ function App() {
                     <input
                       type="number"
                       value={minBets}
-                      onChange={(e) => setMinBets(Math.max(1, Math.min(parseInt(e.target.value) || 1, maxBets)))}
+                      onChange={(e) => setMinBets(e.target.value)}
+                      onBlur={(e) => {
+                        const num = parseInt(e.target.value) || 1;
+                        const maxNum = parseInt(maxBets) || 15;
+                        setMinBets(Math.max(1, Math.min(num, maxNum)).toString());
+                      }}
                       className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
                     />
                   </div>
@@ -845,7 +858,12 @@ function App() {
                     <input
                       type="number"
                       value={maxBets}
-                      onChange={(e) => setMaxBets(Math.max(minBets, Math.min(parseInt(e.target.value) || 15, 15)))}
+                      onChange={(e) => setMaxBets(e.target.value)}
+                      onBlur={(e) => {
+                        const num = parseInt(e.target.value) || 3;
+                        const minNum = parseInt(minBets) || 1;
+                        setMaxBets(Math.max(minNum, Math.min(num, 15)).toString());
+                      }}
                       className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
                     />
                   </div>
@@ -858,7 +876,12 @@ function App() {
                     <input
                       type="number"
                       value={minProbability}
-                      onChange={(e) => setMinProbability(Math.max(1, Math.min(parseInt(e.target.value) || 1, maxProbability)))}
+                      onChange={(e) => setMinProbability(e.target.value)}
+                      onBlur={(e) => {
+                        const num = parseInt(e.target.value) || 5;
+                        const maxNum = parseInt(maxProbability) || 100;
+                        setMinProbability(Math.max(1, Math.min(num, maxNum)).toString());
+                      }}
                       className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
                     />
                   </div>
@@ -871,7 +894,12 @@ function App() {
                     <input
                       type="number"
                       value={maxProbability}
-                      onChange={(e) => setMaxProbability(Math.max(minProbability, Math.min(parseInt(e.target.value) || 100, 100)))}
+                      onChange={(e) => setMaxProbability(e.target.value)}
+                      onBlur={(e) => {
+                        const num = parseInt(e.target.value) || 95;
+                        const minNum = parseInt(minProbability) || 1;
+                        setMaxProbability(Math.max(minNum, Math.min(num, 100)).toString());
+                      }}
                       className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
                     />
                   </div>

@@ -1,33 +1,45 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, DollarSign, Percent, TrendingUp, AlertCircle } from 'lucide-react';
+import { X, DollarSign, Percent, AlertCircle } from 'lucide-react';
 import { cn } from '../utils/cn';
 import TooltipComponent, { tooltipContent } from './Tooltip';
 import { calculatorTooltipContent } from './CalculatorTooltips';
 
 const CalculatorBetCard = ({ bet, onUpdate, onRemove, index, bankroll }) => {
+  const [displayProbability, setDisplayProbability] = useState("");
+  const [displayPayout, setDisplayPayout] = useState("");
+
+  useEffect(() => {
+    setDisplayProbability((bet.probability * 100).toFixed(1));
+    setDisplayPayout(bet.payout.toFixed(2));
+  }, [bet.probability, bet.payout]);
+
   const edge = bet.probability - (1.0 / bet.payout);
   const edgePercentage = (edge * 100).toFixed(2);
   const expectedValue = (bet.probability * bet.payout - 1).toFixed(3);
   
-  const handleProbabilityChange = (value) => {
-    const prob = Math.min(99, Math.max(1, parseFloat(value) || 0)) / 100;
-    onUpdate(bet.id, { ...bet, probability: prob });
+  const handleProbabilityChange = (e) => {
+    setDisplayProbability(e.target.value);
+  };
+
+  const handleProbabilityBlur = () => {
+    let probNum = parseFloat(displayProbability) / 100;
+    if (isNaN(probNum) || probNum < 0.01) probNum = 0.01;
+    if (probNum > 0.99) probNum = 0.99;
+    onUpdate(bet.id, { ...bet, probability: probNum });
+    // useEffect will sync displayProbability if probNum was changed
   };
   
-  const handlePayoutChange = (value) => {
-    // Allow typing "10" by not immediately constraining during input
-    const rawValue = value.toString();
-    let payout;
-    
-    // If it's empty or just "1", allow it temporarily
-    if (rawValue === '' || rawValue === '1') {
-      payout = parseFloat(rawValue) || 1;
-    } else {
-      payout = Math.max(1.01, parseFloat(rawValue) || 1.01);
-    }
-    
-    onUpdate(bet.id, { ...bet, payout });
+  const handlePayoutChange = (e) => {
+    setDisplayPayout(e.target.value);
+  };
+
+  const handlePayoutBlur = () => {
+    let payoutNum = parseFloat(displayPayout);
+    if (isNaN(payoutNum) || payoutNum < 1.01) payoutNum = 1.01;
+    // No upper bound explicitly set for payout, but can be added if needed
+    onUpdate(bet.id, { ...bet, payout: payoutNum });
+    // useEffect will sync displayPayout if payoutNum was changed
   };
   
   // Warning states
@@ -86,8 +98,9 @@ const CalculatorBetCard = ({ bet, onUpdate, onRemove, index, bankroll }) => {
             </label>
             <input
               type="number"
-              value={(bet.probability * 100).toFixed(1)}
-              onChange={(e) => handleProbabilityChange(e.target.value)}
+              value={displayProbability}
+              onChange={handleProbabilityChange}
+              onBlur={handleProbabilityBlur} // Validate on blur
               min="1"
               max="99"
               step="0.1"
@@ -100,8 +113,11 @@ const CalculatorBetCard = ({ bet, onUpdate, onRemove, index, bankroll }) => {
                 min="1"
                 max="99"
                 step="0.1"
-                value={bet.probability * 100}
-                onChange={(e) => handleProbabilityChange(e.target.value)}
+                value={bet.probability * 100} // Slider still reflects numeric prop
+                onChange={(e) => {
+                  const prob = parseFloat(e.target.value) / 100;
+                  onUpdate(bet.id, { ...bet, probability: prob });
+                }}
                 className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb-small"
                 style={{
                   background: `linear-gradient(to right, #0066ff 0%, #0066ff ${bet.probability * 100}%, #374151 ${bet.probability * 100}%, #374151 100%)`
@@ -118,8 +134,9 @@ const CalculatorBetCard = ({ bet, onUpdate, onRemove, index, bankroll }) => {
             </label>
             <input
               type="number"
-              value={bet.payout.toFixed(2)}
-              onChange={(e) => handlePayoutChange(e.target.value)}
+              value={displayPayout}
+              onChange={handlePayoutChange}
+              onBlur={handlePayoutBlur} // Validate on blur
               min="1.01"
               step="0.01"
               className="w-full px-3 py-2 bg-background-tertiary border border-white/10 rounded-lg text-white focus:outline-none focus:border-primary-500 transition-colors"
@@ -129,10 +146,13 @@ const CalculatorBetCard = ({ bet, onUpdate, onRemove, index, bankroll }) => {
               <input
                 type="range"
                 min="1.01"
-                max="20"
+                max="20" // Max for slider, input can go higher
                 step="0.01"
-                value={bet.payout}
-                onChange={(e) => handlePayoutChange(e.target.value)}
+                value={bet.payout} // Slider still reflects numeric prop
+                onChange={(e) => {
+                  const payout = parseFloat(e.target.value);
+                  onUpdate(bet.id, { ...bet, payout: payout });
+                }}
                 className="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer slider-thumb-small"
                 style={{
                   background: `linear-gradient(to right, #0066ff 0%, #0066ff ${Math.min(100, ((bet.payout - 1.01) / (20 - 1.01)) * 100)}%, #374151 ${Math.min(100, ((bet.payout - 1.01) / (20 - 1.01)) * 100)}%, #374151 100%)`
