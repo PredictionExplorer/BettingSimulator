@@ -1,70 +1,107 @@
-# Getting Started with Create React App
+# Kelly Criterion Simulator
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A sophisticated web application designed to help users understand and apply the Kelly Criterion betting strategy through interactive simulation and practical calculation tools.
 
-## Available Scripts
+## Features
 
-In the project directory, you can run:
+### 🎮 Simulation Mode
+- **Interactive Betting Game**: Practice with virtual money against randomly generated betting opportunities
+- **Real-time Feedback**: Visual indicators showing bet quality and results
+- **Performance Tracking**: Compare your strategy against the mathematically optimal Kelly Criterion
+- **Customizable Parameters**: Adjust bet ranges, probability limits, and more
+- **Visual Analytics**: Charts showing bankroll growth over time
 
-### `npm start`
+### 🧮 Calculator Mode
+- **Real-world Application**: Calculate optimal bet sizes for actual betting opportunities
+- **Multiple Bet Support**: Analyze several simultaneous betting opportunities
+- **Flexible Input**: Enter probability and payout directly
+- **Risk Management**: See both full Kelly and half Kelly recommendations
+- **Quick Presets**: Common betting scenarios for easy exploration
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 📚 Educational Features
+- **Comprehensive Tooltips**: Hover over any metric for detailed explanations
+- **Welcome Tutorial**: Step-by-step introduction for beginners
+- **Visual Feedback**: Color-coded indicators for positive/negative edge bets
+- **Bet Quality Indicators**: Learn when your bets are too conservative or aggressive
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Overview
 
-### `npm test`
+This simulator helps users develop intuition about optimal bet sizing using the Kelly Criterion formula. Whether you're learning the concept or need to calculate real bets, this tool provides both educational value and practical utility.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### What is the Kelly Criterion?
 
-### `npm run build`
+The Kelly Criterion is a mathematical formula that determines the optimal size of a series of bets to maximize long-term growth while avoiding ruin. It considers:
+- The probability of winning
+- The payout odds
+- Your current bankroll
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Formula: `f* = (bp - q) / b`
+Where:
+- `f*` = fraction of bankroll to bet
+- `b` = net odds received on the bet
+- `p` = probability of winning
+- `q` = probability of losing (1 - p)
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Installation
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/betting-simulator.git
 
-### `npm run eject`
+# Navigate to the project directory
+cd betting-simulator
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+# Install dependencies
+npm install
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+# Start the development server
+npm start
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+The app will open in your browser at `http://localhost:3000`.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Usage
 
-## Learn More
+### Simulation Mode
+1. Adjust bet parameters using the sliders on each bet card
+2. Click "Place Bets" to see results
+3. Track your performance against the optimal strategy
+4. Use the settings panel to customize game difficulty
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Calculator Mode
+1. Switch to Calculator Mode using the toggle in the header
+2. Click "Add New Bet" or use quick presets
+3. Enter your win probability and payout
+4. View the recommended Kelly bet size
+5. Optional: Enter bankroll to see dollar amounts
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Technologies Used
 
-### Code Splitting
+- **React** - UI framework
+- **WebAssembly (Rust)** - High-performance Kelly calculations
+- **Tailwind CSS** - Styling
+- **Framer Motion** - Animations
+- **Recharts** - Data visualization
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Documentation
 
-### Analyzing the Bundle Size
+See [DOCUMENTATION.md](DOCUMENTATION.md) for detailed information about:
+- Component architecture
+- Adding new features
+- Customization options
+- Tooltip system
+- Educational content
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Contributing
 
-### Making a Progressive Web App
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## License
 
-### Advanced Configuration
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## Acknowledgments
 
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- Kelly Criterion formula developed by John L. Kelly Jr.
+- UI inspired by modern financial applications
+- Educational approach based on interactive learning principles

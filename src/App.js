@@ -12,7 +12,8 @@ import {
   Sparkles,
   Target,
   Percent,
-  Award
+  Award,
+  RefreshCw
 } from 'lucide-react';
 import CountUp from 'react-countup';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -23,6 +24,8 @@ import WelcomeModal from './components/WelcomeModal';
 import TooltipComponent, { tooltipContent } from './components/Tooltip';
 import HowItWorksButton from './components/HowItWorksButton';
 import BetQualityIndicator from './components/BetQualityIndicator';
+import ModeSwitch from './components/ModeSwitch';
+import CalculatorMode from './components/CalculatorMode';
 
 // Custom tooltip for charts
 const CustomTooltip = ({ active, payload, label }) => {
@@ -314,6 +317,9 @@ const StatCard = ({ title, value, icon: Icon, trend, color = "primary", tooltip 
 };
 
 function App() {
+  // Add mode state
+  const [appMode, setAppMode] = useState('simulation'); // 'simulation' | 'calculator'
+  
   const [bankroll, setBankroll] = useState(1000);
   const [opponentBankroll, setOpponentBankroll] = useState(1000);
   const [bankrollHistory, setBankrollHistory] = useState([{x: 0, y: 1000}]);
@@ -500,6 +506,20 @@ function App() {
     setBets(result);
   }, [bets, minProbability, maxProbability, multi_kelly]);
 
+  // Add reset game function
+  const resetGame = useCallback(() => {
+    setBankroll(1000);
+    setOpponentBankroll(1000);
+    setBankrollHistory([{x: 0, y: 1000}]);
+    setOptimalBankrollHistory([{x: 0, y: 1000}]);
+    setPreviousBankroll(1000);
+    setPreviousOpponentBankroll(1000);
+    setBetCountUI(0);
+    setGameState("showBet");
+    setMessageUI("Good Luck!");
+    generateBets();
+  }, [generateBets]);
+
   // Show loading state while WASM initializes
   if (!isWasmReady) {
     return (
@@ -548,21 +568,24 @@ function App() {
                 <div className="p-2 rounded-xl bg-primary-500/20">
                   <BarChart3 className="w-6 h-6 text-primary-400" />
                 </div>
-                <h1 className="text-2xl font-bold text-white">Betting Simulator</h1>
+                <h1 className="text-2xl font-bold text-white">Kelly Criterion Simulator</h1>
               </div>
               
               <div className="flex items-center gap-3">
+                <ModeSwitch currentMode={appMode} onModeChange={setAppMode} />
                 <HowItWorksButton onClick={() => setShowWelcomeModal(true)} />
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setIsChartVisible(!isChartVisible)}
-                  className="btn-secondary flex items-center gap-2 relative"
-                >
-                  <Activity className="w-4 h-4" />
-                  {isChartVisible ? 'Hide' : 'Show'} Chart
-                  <TooltipComponent {...tooltipContent.showChart} position="bottom" />
-                </motion.button>
+                {appMode === 'simulation' && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setIsChartVisible(!isChartVisible)}
+                    className="btn-secondary flex items-center gap-2 relative"
+                  >
+                    <Activity className="w-4 h-4" />
+                    {isChartVisible ? 'Hide' : 'Show'} Chart
+                    <TooltipComponent {...tooltipContent.showChart} position="bottom" />
+                  </motion.button>
+                )}
               </div>
             </div>
           </div>
@@ -570,267 +593,292 @@ function App() {
 
         {/* Main Container */}
         <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <StatCard
-              title="Your Bankroll"
-              value={bankroll}
-              icon={DollarSign}
-              trend={bankrollTrend}
-              color="primary"
-              tooltip={tooltipContent.bankroll}
-            />
-            <StatCard
-              title="Optimal Bankroll"
-              value={opponentBankroll}
-              icon={Award}
-              trend={opponentTrend}
-              color="success"
-              tooltip={tooltipContent.optimalBankroll}
-            />
-            <StatCard
-              title="Total Bets"
-              value={betCountUI}
-              icon={Activity}
-              color="warning"
-              tooltip={tooltipContent.totalBets}
-            />
-          </div>
+          {appMode === 'calculator' ? (
+            <CalculatorMode multiKellyFunction={multi_kelly} />
+          ) : (
+            <>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <StatCard
+                  title="Your Bankroll"
+                  value={bankroll}
+                  icon={DollarSign}
+                  trend={bankrollTrend}
+                  color="primary"
+                  tooltip={tooltipContent.bankroll}
+                />
+                <StatCard
+                  title="Optimal Bankroll"
+                  value={opponentBankroll}
+                  icon={Award}
+                  trend={opponentTrend}
+                  color="success"
+                  tooltip={tooltipContent.optimalBankroll}
+                />
+                <StatCard
+                  title="Total Bets"
+                  value={betCountUI}
+                  icon={Activity}
+                  color="warning"
+                  tooltip={tooltipContent.totalBets}
+                />
+              </div>
 
-          {/* Chart Section */}
-          <AnimatePresence>
-            {isChartVisible && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="glass-card p-6"
-              >
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-primary-400" />
-                  Bankroll History
-                  <TooltipComponent 
-                    title="Performance Over Time"
-                    content="Your bankroll (blue) vs the optimal Kelly strategy (green). The goal is to match or beat the green line!"
-                    example="If your line is above the green line, you're outperforming the optimal strategy!"
-                    position="right"
-                  />
-                </h3>
-                <div className="mb-4 flex items-center gap-2">
-                  <h4 className="text-md font-semibold text-white flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-primary-400" />
-                    Your Performance
-                    <TooltipComponent 
-                      title="Your Betting Strategy"
-                      content="This shows how your bankroll has grown (or shrunk) based on your betting decisions."
-                      example="The blue line tracks your actual performance - try to keep it growing steadily!"
-                      position="right"
-                    />
-                  </h4>
-                </div>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={bankrollHistory}>
-                    <defs>
-                      <linearGradient id="colorUser" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0066ff" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#0066ff" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorOptimal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="x" stroke="#9ca3af" />
-                    <YAxis stroke="#9ca3af" />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area
-                      type="monotone"
-                      dataKey="y"
-                      stroke="#0066ff"
-                      fillOpacity={1}
-                      fill="url(#colorUser)"
-                      strokeWidth={2}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-                
-                <div className="mt-6 mb-4 flex items-center gap-2">
-                  <h4 className="text-md font-semibold text-white flex items-center gap-2">
-                    <Award className="w-4 h-4 text-green-400" />
-                    Optimal Strategy Performance
-                    <TooltipComponent 
-                      title="Kelly Criterion Benchmark"
-                      content="This shows how your bankroll would grow if you always bet the mathematically optimal amount using the Kelly Criterion formula."
-                      example="The green line represents 'perfect play' - your goal is to match or beat this performance!"
-                      position="right"
-                    />
-                  </h4>
-                </div>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={optimalBankrollHistory}>
-                    <defs>
-                      <linearGradient id="colorOptimal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="x" stroke="#9ca3af" />
-                    <YAxis stroke="#9ca3af" />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area
-                      type="monotone"
-                      dataKey="y"
-                      stroke="#10b981"
-                      fillOpacity={1}
-                      fill="url(#colorOptimal)"
-                      strokeWidth={2}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Message */}
-          <motion.div
-            key={messageUI}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center"
-          >
-            <p className="text-lg font-medium text-gray-300">{messageUI}</p>
-            {growthUI > 0 && (
-              <p className="text-sm text-gray-400 mt-1 flex items-center justify-center gap-1">
-                Expected Growth: 
-                <span className="text-primary-400 font-semibold">{growthUI.toFixed(3)}</span>
-                <TooltipComponent {...tooltipContent.expectedGrowth} />
-              </p>
-            )}
-          </motion.div>
-
-          {/* Action Buttons - Moved to more visible location */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="glass-card p-6 mx-auto max-w-2xl"
-          >
-            <div className="flex flex-wrap gap-4 justify-center">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleBet}
-                className="btn-primary flex items-center gap-2 text-lg px-8 py-4 relative group shadow-lg"
-              >
-                {gameState === "showBet" ? (
-                  <>
-                    <Sparkles className="w-5 h-5" />
-                    Place Bets
-                    <TooltipComponent {...tooltipContent.placeBets} position="bottom" />
-                  </>
-                ) : (
-                  <>
-                    <ChevronRight className="w-5 h-5" />
-                    Next Round
-                    <TooltipComponent {...tooltipContent.nextRound} position="bottom" />
-                  </>
+              {/* Chart Section */}
+              <AnimatePresence>
+                {isChartVisible && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="glass-card p-6"
+                  >
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-primary-400" />
+                      Bankroll History
+                      <TooltipComponent 
+                        title="Performance Over Time"
+                        content="Your bankroll (blue) vs the optimal Kelly strategy (green). The goal is to match or beat the green line!"
+                        example="If your line is above the green line, you're outperforming the optimal strategy!"
+                        position="right"
+                      />
+                    </h3>
+                    <div className="mb-4 flex items-center gap-2">
+                      <h4 className="text-md font-semibold text-white flex items-center gap-2">
+                        <DollarSign className="w-4 h-4 text-primary-400" />
+                        Your Performance
+                        <TooltipComponent 
+                          title="Your Betting Strategy"
+                          content="This shows how your bankroll has grown (or shrunk) based on your betting decisions."
+                          example="The blue line tracks your actual performance - try to keep it growing steadily!"
+                          position="right"
+                        />
+                      </h4>
+                    </div>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <AreaChart data={bankrollHistory}>
+                        <defs>
+                          <linearGradient id="colorUser" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#0066ff" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#0066ff" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="colorOptimal" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                        <XAxis dataKey="x" stroke="#9ca3af" />
+                        <YAxis stroke="#9ca3af" />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Area
+                          type="monotone"
+                          dataKey="y"
+                          stroke="#0066ff"
+                          fillOpacity={1}
+                          fill="url(#colorUser)"
+                          strokeWidth={2}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                    
+                    <div className="mt-6 mb-4 flex items-center gap-2">
+                      <h4 className="text-md font-semibold text-white flex items-center gap-2">
+                        <Award className="w-4 h-4 text-green-400" />
+                        Optimal Strategy Performance
+                        <TooltipComponent 
+                          title="Kelly Criterion Benchmark"
+                          content="This shows how your bankroll would grow if you always bet the mathematically optimal amount using the Kelly Criterion formula."
+                          example="The green line represents 'perfect play' - your goal is to match or beat this performance!"
+                          position="right"
+                        />
+                      </h4>
+                    </div>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <AreaChart data={optimalBankrollHistory}>
+                        <defs>
+                          <linearGradient id="colorOptimal" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                        <XAxis dataKey="x" stroke="#9ca3af" />
+                        <YAxis stroke="#9ca3af" />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Area
+                          type="monotone"
+                          dataKey="y"
+                          stroke="#10b981"
+                          fillOpacity={1}
+                          fill="url(#colorOptimal)"
+                          strokeWidth={2}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </motion.div>
                 )}
-              </motion.button>
-              
-              {gameState === "showBet" && (
-                <motion.button
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleAddBet}
-                  className="btn-secondary flex items-center gap-2 relative text-lg px-6 py-4"
-                >
-                  <Plus className="w-5 h-5" />
-                  Add Bet
-                  <TooltipComponent {...tooltipContent.addBet} position="bottom" />
-                </motion.button>
-              )}
-            </div>
-          </motion.div>
+              </AnimatePresence>
 
-          {/* Bets Grid */}
-          <motion.div
-            layout
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-          >
-            <AnimatePresence>
-              {bets.map((bet, index) => (
-                <BetCard
-                  key={bet.id}
-                  bet={bet}
-                  index={index}
-                  onSliderChange={handleSliderChange}
-                />
-              ))}
-            </AnimatePresence>
-          </motion.div>
+              {/* Message */}
+              <motion.div
+                key={messageUI}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center"
+              >
+                <p className="text-lg font-medium text-gray-300">{messageUI}</p>
+                {growthUI > 0 && (
+                  <p className="text-sm text-gray-400 mt-1 flex items-center justify-center gap-1">
+                    Expected Growth: 
+                    <span className="text-primary-400 font-semibold">{growthUI.toFixed(3)}</span>
+                    <TooltipComponent {...tooltipContent.expectedGrowth} />
+                  </p>
+                )}
+              </motion.div>
 
-          {/* Settings Section */}
-          <div className="glass-card p-6 space-y-4">
-            <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300 flex items-center gap-1">
-                  Min Bets
-                  <TooltipComponent {...tooltipContent.minBets} />
-                </label>
-                <input
-                  type="number"
-                  value={minBets}
-                  onChange={(e) => setMinBets(Math.max(1, Math.min(parseInt(e.target.value) || 1, maxBets)))}
-                  className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
-                />
+              {/* Action Buttons - Moved to more visible location */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="glass-card p-6 mx-auto max-w-2xl"
+              >
+                <div className="flex flex-wrap gap-4 justify-center">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleBet}
+                    className="btn-primary flex items-center gap-2 text-lg px-8 py-4 relative group shadow-lg"
+                  >
+                    {gameState === "showBet" ? (
+                      <>
+                        <Sparkles className="w-5 h-5" />
+                        Place Bets
+                        <TooltipComponent {...tooltipContent.placeBets} position="bottom" />
+                      </>
+                    ) : (
+                      <>
+                        <ChevronRight className="w-5 h-5" />
+                        Next Round
+                        <TooltipComponent {...tooltipContent.nextRound} position="bottom" />
+                      </>
+                    )}
+                  </motion.button>
+                  
+                  {gameState === "showBet" && (
+                    <motion.button
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleAddBet}
+                      className="btn-secondary flex items-center gap-2 relative text-lg px-6 py-4"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Add Bet
+                      <TooltipComponent {...tooltipContent.addBet} position="bottom" />
+                    </motion.button>
+                  )}
+                  
+                  {/* Add Reset Button */}
+                  <motion.button
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={resetGame}
+                    className="btn-secondary flex items-center gap-2 relative text-lg px-6 py-4"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                    Reset Game
+                    <TooltipComponent 
+                      title="Start Fresh"
+                      content="Reset your bankroll to $1,000 and start a new game from scratch."
+                      position="bottom"
+                    />
+                  </motion.button>
+                </div>
+              </motion.div>
+
+              {/* Bets Grid */}
+              <motion.div
+                layout
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+              >
+                <AnimatePresence>
+                  {bets.map((bet, index) => (
+                    <BetCard
+                      key={bet.id}
+                      bet={bet}
+                      index={index}
+                      onSliderChange={handleSliderChange}
+                    />
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+
+              {/* Settings Section */}
+              <div className="glass-card p-6 space-y-4">
+                <h3 className="text-lg font-semibold text-white mb-4">Settings</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-300 flex items-center gap-1">
+                      Min Bets
+                      <TooltipComponent {...tooltipContent.minBets} />
+                    </label>
+                    <input
+                      type="number"
+                      value={minBets}
+                      onChange={(e) => setMinBets(Math.max(1, Math.min(parseInt(e.target.value) || 1, maxBets)))}
+                      className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-300 flex items-center gap-1">
+                      Max Bets
+                      <TooltipComponent {...tooltipContent.maxBets} />
+                    </label>
+                    <input
+                      type="number"
+                      value={maxBets}
+                      onChange={(e) => setMaxBets(Math.max(minBets, Math.min(parseInt(e.target.value) || 15, 15)))}
+                      className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-300 flex items-center gap-1">
+                      Min Probability %
+                      <TooltipComponent {...tooltipContent.minProbability} />
+                    </label>
+                    <input
+                      type="number"
+                      value={minProbability}
+                      onChange={(e) => setMinProbability(Math.max(1, Math.min(parseInt(e.target.value) || 1, maxProbability)))}
+                      className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-300 flex items-center gap-1">
+                      Max Probability %
+                      <TooltipComponent {...tooltipContent.maxProbability} />
+                    </label>
+                    <input
+                      type="number"
+                      value={maxProbability}
+                      onChange={(e) => setMaxProbability(Math.max(minProbability, Math.min(parseInt(e.target.value) || 100, 100)))}
+                      className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
+                    />
+                  </div>
+                </div>
               </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300 flex items-center gap-1">
-                  Max Bets
-                  <TooltipComponent {...tooltipContent.maxBets} />
-                </label>
-                <input
-                  type="number"
-                  value={maxBets}
-                  onChange={(e) => setMaxBets(Math.max(minBets, Math.min(parseInt(e.target.value) || 15, 15)))}
-                  className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300 flex items-center gap-1">
-                  Min Probability %
-                  <TooltipComponent {...tooltipContent.minProbability} />
-                </label>
-                <input
-                  type="number"
-                  value={minProbability}
-                  onChange={(e) => setMinProbability(Math.max(1, Math.min(parseInt(e.target.value) || 1, maxProbability)))}
-                  className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300 flex items-center gap-1">
-                  Max Probability %
-                  <TooltipComponent {...tooltipContent.maxProbability} />
-                </label>
-                <input
-                  type="number"
-                  value={maxProbability}
-                  onChange={(e) => setMaxProbability(Math.max(minProbability, Math.min(parseInt(e.target.value) || 100, 100)))}
-                  className="w-full px-4 py-2 bg-background-tertiary border border-white/10 rounded-xl text-white focus:outline-none focus:border-primary-500 transition-colors"
-                />
-              </div>
-            </div>
-          </div>
+            </>
+          )}
         </main>
       </div>
 
