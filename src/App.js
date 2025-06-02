@@ -22,6 +22,8 @@ import FormControlLabel from '@mui/material/FormControlLabel'; // For labeling t
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend } from 'chart.js';
 
+import { kelly, growthRate, getRandomFloat } from './mathUtils';
+
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
 const theme = createTheme({
@@ -94,69 +96,41 @@ function generateOneBet(minProbability, maxProbability) {
   };
 }
 
-function kelly(b, p) {
-  const q = 1 - p;
-  return (b * p - q) / b;
-}
-
-function growthRate(b, p) {
-  const q = 1 - p;
-  const f = kelly(b, p);
-  try {
-    return p * Math.log(1 + f * b) + q * Math.log(1 - f);
-  } catch (error) {
-    return Infinity;
-  }
-}
-
-function getRandomFloat(min, max) {
-  return Math.random() * (max - min) + min;
-}
-
 // Memorise each bet card so only the card whose data actually changes re-renders
 const BetComponent = React.memo(({ bet, onSliderChange }) => {
-  const className = `bet-component ${
-    bet.state === 'win'
-      ? 'win-background'
-      : bet.state === 'lose'
-      ? 'lose-background'
-      : 'neutral-background'
-  }`;
+  return (
+    <Box
+      sx={{
+        backgroundColor: bet.state === 'win' ? 'green' : (bet.state === 'lose' ? 'red' : 'gray'),
+        color: 'white',
+        padding: 2,
+        borderRadius: 1,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      {/* Adjust the marginBottom on each paragraph to reduce spacing */}
+      <p sx={{ marginBottom: '8px' }}>Probability of Winning: {(bet.probability * 100).toFixed(2)}%</p>
+      <p sx={{ marginBottom: '8px' }}>Implied odds: {(100.0 / bet.payout).toFixed(2)}% </p>
+      <p sx={{ marginBottom: '8px' }}>Edge (probability - implied): {(100 * (bet.probability - (1.0 / bet.payout))).toFixed(2)}% </p>
+      <p sx={{ marginBottom: '8px' }}>Payout: {bet.payout.toFixed(2)}x </p>
+      <p sx={{ marginBottom: '8px' }}>Optimal: {bet.state !== 'neutral' ? `${(bet.optimalSize * 100).toFixed(2)}%` : '?'}</p>
 
-   return (
-       <Box
-  sx={{
-    backgroundColor: bet.state === 'win' ? 'green' : (bet.state === 'lose' ? 'red' : 'gray'),
-    color: 'white',
-    padding: 2,
-    borderRadius: 1,
-    display: 'flex',
-    flexDirection: 'column',
-  }}
->
-  {/* Adjust the marginBottom on each paragraph to reduce spacing */}
-  <p sx={{ marginBottom: '8px' }}>Probability of Winning: {(bet.probability * 100).toFixed(2)}%</p>
-  <p sx={{ marginBottom: '8px' }}>Implied odds: {(100.0 / bet.payout).toFixed(2)}% </p>
-  <p sx={{ marginBottom: '8px' }}>Edge (probability - implied): {(100 * (bet.probability - (1.0 / bet.payout))).toFixed(2)}% </p>
-  <p sx={{ marginBottom: '8px' }}>Payout: {bet.payout.toFixed(2)}x </p>
-  <p sx={{ marginBottom: '8px' }}>Optimal: {bet.state !== 'neutral' ? `${(bet.optimalSize * 100).toFixed(2)}%` : '?'}</p>
-
-  {/* For the slider and its label, you might want to keep or adjust the spacing as needed */}
-  <Box sx={{ width: '100%', mt: 2 }}>
-    <Typography gutterBottom>Bet Percentage of Bankroll</Typography>
-    <PrettoSlider
-      aria-labelledby={`bet-slider-${bet.id}`}
-      value={bet.betPercentage}
-      min={0}
-      max={100}
-      step={0.01}
-      valueLabelDisplay="auto"
-      onChange={(e, val) => onSliderChange(bet.id, val)}
-    />
-    <Box sx={{ textAlign: 'center', mt: 1 }}>{bet.betPercentage.toFixed(2)}%</Box>
-  </Box>
-</Box>
-
+      {/* For the slider and its label, you might want to keep or adjust the spacing as needed */}
+      <Box sx={{ width: '100%', mt: 2 }}>
+        <Typography gutterBottom>Bet Percentage of Bankroll</Typography>
+        <PrettoSlider
+          aria-labelledby={`bet-slider-${bet.id}`}
+          value={bet.betPercentage}
+          min={0}
+          max={100}
+          step={0.01}
+          valueLabelDisplay="auto"
+          onChange={(e, val) => onSliderChange(bet.id, val)}
+        />
+        <Box sx={{ textAlign: 'center', mt: 1 }}>{bet.betPercentage.toFixed(2)}%</Box>
+      </Box>
+    </Box>
   );
 });
 
