@@ -19,6 +19,9 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { getRandomFloat } from './mathUtils';
 import { cn } from './utils/cn';
 import confetti from 'canvas-confetti';
+import WelcomeModal from './components/WelcomeModal';
+import TooltipComponent, { tooltipContent } from './components/Tooltip';
+import HowItWorksButton from './components/HowItWorksButton';
 
 // Custom tooltip for charts
 const CustomTooltip = ({ active, payload, label }) => {
@@ -110,6 +113,7 @@ const BetCard = React.memo(({ bet, onSliderChange, index }) => {
             <div className="flex items-center gap-1.5 text-gray-400 text-xs">
               <Percent className="w-3 h-3" />
               <span>Win Probability</span>
+              <TooltipComponent {...tooltipContent.probability} />
             </div>
             <p className="font-mono font-semibold text-white">
               {(bet.probability * 100).toFixed(1)}%
@@ -120,6 +124,7 @@ const BetCard = React.memo(({ bet, onSliderChange, index }) => {
             <div className="flex items-center gap-1.5 text-gray-400 text-xs">
               <DollarSign className="w-3 h-3" />
               <span>Payout</span>
+              <TooltipComponent {...tooltipContent.payout} />
             </div>
             <p className="font-mono font-semibold text-white">
               {bet.payout.toFixed(2)}x
@@ -130,6 +135,7 @@ const BetCard = React.memo(({ bet, onSliderChange, index }) => {
             <div className="flex items-center gap-1.5 text-gray-400 text-xs">
               <Activity className="w-3 h-3" />
               <span>Implied Odds</span>
+              <TooltipComponent {...tooltipContent.impliedOdds} />
             </div>
             <p className="font-mono font-semibold text-white">
               {(100.0 / bet.payout).toFixed(1)}%
@@ -140,6 +146,7 @@ const BetCard = React.memo(({ bet, onSliderChange, index }) => {
             <div className="flex items-center gap-1.5 text-gray-400 text-xs">
               <TrendingUp className="w-3 h-3" />
               <span>Edge</span>
+              <TooltipComponent {...tooltipContent.edge} />
             </div>
             <p className={cn(
               "font-mono font-semibold",
@@ -153,7 +160,10 @@ const BetCard = React.memo(({ bet, onSliderChange, index }) => {
         {/* Modern Slider */}
         <div className="space-y-2 pt-2">
           <div className="flex justify-between items-center">
-            <label className="text-sm font-medium text-gray-300">Bet Amount</label>
+            <label className="text-sm font-medium text-gray-300 flex items-center gap-1">
+              Bet Amount
+              <TooltipComponent {...tooltipContent.betAmount} />
+            </label>
             <span className="text-sm font-bold text-primary-400">{bet.betPercentage.toFixed(2)}%</span>
           </div>
           
@@ -178,7 +188,7 @@ const BetCard = React.memo(({ bet, onSliderChange, index }) => {
 });
 
 // Stat Card Component
-const StatCard = ({ title, value, icon: Icon, trend, color = "primary" }) => {
+const StatCard = ({ title, value, icon: Icon, trend, color = "primary", tooltip }) => {
   const colorClasses = {
     primary: "from-primary-500/20 to-primary-600/20",
     success: "from-green-500/20 to-green-600/20",
@@ -197,7 +207,10 @@ const StatCard = ({ title, value, icon: Icon, trend, color = "primary" }) => {
       
       <div className="relative">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-gray-300">{title}</h3>
+          <h3 className="text-sm font-medium text-gray-300 flex items-center gap-1">
+            {title}
+            {tooltip && <TooltipComponent {...tooltip} />}
+          </h3>
           <Icon className={cn(
             "w-5 h-5",
             color === "primary" ? "text-primary-400" : 
@@ -261,6 +274,9 @@ function App() {
   const [isWasmReady, setWasmReady] = useState(false);
   const [bets, setBets] = useState([]);
   const [messageUI, setMessageUI] = useState("Good Luck!");
+  
+  // Add welcome modal state
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   const bankrollTrend = ((bankroll - previousBankroll) / previousBankroll) * 100;
   const opponentTrend = ((opponentBankroll - previousOpponentBankroll) / previousOpponentBankroll) * 100;
@@ -282,6 +298,14 @@ function App() {
       .catch((err) => console.error("Error initializing Wasm module:", err));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  
+  // Check if user has seen welcome modal
+  useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+    if (!hasSeenWelcome && isWasmReady) {
+      setShowWelcomeModal(true);
+    }
+  }, [isWasmReady]);
 
   const multi_kelly = useCallback((input) => {
     const inputJson = JSON.stringify(input);
@@ -467,15 +491,18 @@ function App() {
                 <h1 className="text-2xl font-bold text-white">Betting Simulator</h1>
               </div>
               
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsChartVisible(!isChartVisible)}
-                className="btn-secondary flex items-center gap-2"
-              >
-                <Activity className="w-4 h-4" />
-                {isChartVisible ? 'Hide' : 'Show'} Chart
-              </motion.button>
+              <div className="flex items-center gap-3">
+                <HowItWorksButton onClick={() => setShowWelcomeModal(true)} />
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setIsChartVisible(!isChartVisible)}
+                  className="btn-secondary flex items-center gap-2"
+                >
+                  <Activity className="w-4 h-4" />
+                  {isChartVisible ? 'Hide' : 'Show'} Chart
+                </motion.button>
+              </div>
             </div>
           </div>
         </motion.header>
@@ -490,6 +517,7 @@ function App() {
               icon={DollarSign}
               trend={bankrollTrend}
               color="primary"
+              tooltip={tooltipContent.bankroll}
             />
             <StatCard
               title="Optimal Bankroll"
@@ -497,12 +525,14 @@ function App() {
               icon={Award}
               trend={opponentTrend}
               color="success"
+              tooltip={tooltipContent.opponentBankroll}
             />
             <StatCard
               title="Total Bets"
               value={betCountUI}
               icon={Activity}
               color="warning"
+              tooltip={tooltipContent.totalBets}
             />
           </div>
 
@@ -613,8 +643,10 @@ function App() {
           >
             <p className="text-lg font-medium text-gray-300">{messageUI}</p>
             {growthUI > 0 && (
-              <p className="text-sm text-gray-400 mt-1">
-                Expected Growth: <span className="text-primary-400 font-semibold">{growthUI.toFixed(3)}</span>
+              <p className="text-sm text-gray-400 mt-1 flex items-center justify-center gap-1">
+                Expected Growth: 
+                <span className="text-primary-400 font-semibold">{growthUI.toFixed(3)}</span>
+                <TooltipComponent {...tooltipContent.expectedGrowth} />
               </p>
             )}
           </motion.div>
@@ -718,6 +750,18 @@ function App() {
           box-shadow: 0 0 0 8px rgba(0, 102, 255, 0.1);
         }
       `}</style>
+      
+      {/* Welcome Modal */}
+      <WelcomeModal 
+        isOpen={showWelcomeModal} 
+        onClose={() => setShowWelcomeModal(false)} 
+      />
+      
+      {/* Floating How It Works Button */}
+      <HowItWorksButton 
+        variant="floating" 
+        onClick={() => setShowWelcomeModal(true)} 
+      />
     </div>
   );
 }
