@@ -534,7 +534,7 @@ function App() {
               icon={Award}
               trend={opponentTrend}
               color="success"
-              tooltip={tooltipContent.opponentBankroll}
+              tooltip={tooltipContent.optimalBankroll}
             />
             <StatCard
               title="Total Bets"
@@ -564,6 +564,18 @@ function App() {
                     position="right"
                   />
                 </h3>
+                <div className="mb-4 flex items-center gap-2">
+                  <h4 className="text-md font-semibold text-white flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-primary-400" />
+                    Your Performance
+                    <TooltipComponent 
+                      title="Your Betting Strategy"
+                      content="This shows how your bankroll has grown (or shrunk) based on your betting decisions."
+                      example="The blue line tracks your actual performance - try to keep it growing steadily!"
+                      position="right"
+                    />
+                  </h4>
+                </div>
                 <ResponsiveContainer width="100%" height={300}>
                   <AreaChart data={bankrollHistory}>
                     <defs>
@@ -591,6 +603,18 @@ function App() {
                   </AreaChart>
                 </ResponsiveContainer>
                 
+                <div className="mt-6 mb-4 flex items-center gap-2">
+                  <h4 className="text-md font-semibold text-white flex items-center gap-2">
+                    <Award className="w-4 h-4 text-green-400" />
+                    Optimal Strategy Performance
+                    <TooltipComponent 
+                      title="Kelly Criterion Benchmark"
+                      content="This shows how your bankroll would grow if you always bet the mathematically optimal amount using the Kelly Criterion formula."
+                      example="The green line represents 'perfect play' - your goal is to match or beat this performance!"
+                      position="right"
+                    />
+                  </h4>
+                </div>
                 <ResponsiveContainer width="100%" height={300}>
                   <AreaChart data={optimalBankrollHistory}>
                     <defs>

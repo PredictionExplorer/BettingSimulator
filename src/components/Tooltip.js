@@ -78,7 +78,7 @@ const TooltipPortal = ({ children, isVisible, targetRef, position }) => {
   );
 };
 
-const Tooltip = ({ content, title, example, children, position = 'top' }) => {
+const TooltipComponent = ({ content, title, example, children, position = 'top' }) => {
   const [isVisible, setIsVisible] = useState(false);
   const targetRef = useRef(null);
 
@@ -258,4 +258,4 @@ export const tooltipContent = {
   }
 };
 
-export default Tooltip; 
+export default TooltipComponent; 
