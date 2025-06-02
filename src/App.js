@@ -43,7 +43,7 @@ function generateOneBet(minProbability, maxProbability) {
   return {
     probability: p,
     payout: b,
-    betPercentage: 0.0,
+    betPercentage: getRandomFloat(0, 70), // Random bet size between 0-70%
     id: null,
     optimalSize: null,
     state: "neutral",
