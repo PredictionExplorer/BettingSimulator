@@ -85,3 +85,18 @@
   -ms-user-select: none;
   user-select: none;
 }
+
+/* Ensure portal tooltips have proper font and color context */
+body > div[style*="position: absolute"] {
+  font-family: inherit;
+}
+
+/* Fix z-index stacking for tooltips */
+.relative {
+  position: relative;
+}
+
+/* Ensure tooltips in buttons don't interfere with clicks */
+button .tooltip-trigger {
+  pointer-events: none;
+}

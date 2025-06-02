@@ -90,7 +90,14 @@ const BetCard = React.memo(({ bet, onSliderChange, index }) => {
             "absolute top-3 right-3 w-3 h-3 rounded-full ring-4",
             bet.state === 'win' ? 'bg-green-400 ring-green-400/20' : 'bg-red-400 ring-red-400/20'
           )}
-        />
+        >
+          <TooltipComponent 
+            {...tooltipContent.betState} 
+            position="left"
+          >
+            <div className="w-full h-full" />
+          </TooltipComponent>
+        </motion.div>
       )}
 
       <div className="relative p-6 space-y-4">
@@ -101,8 +108,9 @@ const BetCard = React.memo(({ bet, onSliderChange, index }) => {
             Bet #{bet.id + 1}
           </h3>
           {bet.state !== 'neutral' && bet.optimalSize && (
-            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-primary-500/20 text-primary-300">
+            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-primary-500/20 text-primary-300 flex items-center gap-1">
               Optimal: {(bet.optimalSize * 100).toFixed(2)}%
+              <TooltipComponent {...tooltipContent.optimalSize} position="left" />
             </span>
           )}
         </div>
@@ -497,10 +505,11 @@ function App() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setIsChartVisible(!isChartVisible)}
-                  className="btn-secondary flex items-center gap-2"
+                  className="btn-secondary flex items-center gap-2 relative"
                 >
                   <Activity className="w-4 h-4" />
                   {isChartVisible ? 'Hide' : 'Show'} Chart
+                  <TooltipComponent {...tooltipContent.showChart} position="bottom" />
                 </motion.button>
               </div>
             </div>
@@ -548,6 +557,12 @@ function App() {
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                   <Activity className="w-5 h-5 text-primary-400" />
                   Bankroll History
+                  <TooltipComponent 
+                    title="Performance Over Time"
+                    content="Your bankroll (blue) vs the optimal Kelly strategy (green). The goal is to match or beat the green line!"
+                    example="If your line is above the green line, you're outperforming the optimal strategy!"
+                    position="right"
+                  />
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <AreaChart data={bankrollHistory}>
@@ -608,17 +623,19 @@ function App() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleBet}
-              className="btn-primary flex items-center gap-2 text-lg px-8 py-4"
+              className="btn-primary flex items-center gap-2 text-lg px-8 py-4 relative group"
             >
               {gameState === "showBet" ? (
                 <>
                   <Sparkles className="w-5 h-5" />
                   Place Bets
+                  <TooltipComponent {...tooltipContent.placeBets} position="bottom" />
                 </>
               ) : (
                 <>
                   <ChevronRight className="w-5 h-5" />
                   Next Round
+                  <TooltipComponent {...tooltipContent.nextRound} position="bottom" />
                 </>
               )}
             </motion.button>
@@ -627,10 +644,11 @@ function App() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleAddBet}
-              className="btn-secondary flex items-center gap-2"
+              className="btn-secondary flex items-center gap-2 relative"
             >
               <Plus className="w-5 h-5" />
               Add Bet
+              <TooltipComponent {...tooltipContent.addBet} position="bottom" />
             </motion.button>
           </div>
 
@@ -674,7 +692,10 @@ function App() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">Min Bets</label>
+                <label className="text-sm font-medium text-gray-300 flex items-center gap-1">
+                  Min Bets
+                  <TooltipComponent {...tooltipContent.minBets} />
+                </label>
                 <input
                   type="number"
                   value={minBets}
@@ -684,7 +705,10 @@ function App() {
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">Max Bets</label>
+                <label className="text-sm font-medium text-gray-300 flex items-center gap-1">
+                  Max Bets
+                  <TooltipComponent {...tooltipContent.maxBets} />
+                </label>
                 <input
                   type="number"
                   value={maxBets}
@@ -694,7 +718,10 @@ function App() {
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">Min Probability %</label>
+                <label className="text-sm font-medium text-gray-300 flex items-center gap-1">
+                  Min Probability %
+                  <TooltipComponent {...tooltipContent.minProbability} />
+                </label>
                 <input
                   type="number"
                   value={minProbability}
@@ -704,7 +731,10 @@ function App() {
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">Max Probability %</label>
+                <label className="text-sm font-medium text-gray-300 flex items-center gap-1">
+                  Max Probability %
+                  <TooltipComponent {...tooltipContent.maxProbability} />
+                </label>
                 <input
                   type="number"
                   value={maxProbability}
@@ -755,12 +785,6 @@ function App() {
       <WelcomeModal 
         isOpen={showWelcomeModal} 
         onClose={() => setShowWelcomeModal(false)} 
-      />
-      
-      {/* Floating How It Works Button */}
-      <HowItWorksButton 
-        variant="floating" 
-        onClick={() => setShowWelcomeModal(true)} 
       />
     </div>
   );
