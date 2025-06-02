@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import init, { multiple_kelly } from './pkg/kelly_sim';
 import './App.css';
 import Box from '@mui/material/Box'; // Import Box from MUI
@@ -128,7 +128,8 @@ function calculateOptimalBankroll(initialBankroll, growthRate, numberOfBets) {
 }
 
 
-function BetComponent({ bet, onSliderChange }) {
+// Memorise each bet card so only the card whose data actually changes re-renders
+const BetComponent = React.memo(({ bet, onSliderChange }) => {
   const className = `bet-component ${
     bet.state === 'win'
       ? 'win-background'
@@ -157,24 +158,22 @@ function BetComponent({ bet, onSliderChange }) {
 
   {/* For the slider and its label, you might want to keep or adjust the spacing as needed */}
   <Box sx={{ width: '100%', mt: 2 }}>
-    <label style={{ width: '100%', display: 'block', marginBottom: '8px' }}> {/* Adjusted marginBottom here */}
-      Bet Percentage of Bankroll:
-    </label>
-    <input
-      type="range"
-      min="0"
-      max="100"
-      step="0.01"
+    <Typography gutterBottom>Bet Percentage of Bankroll</Typography>
+    <PrettoSlider
+      aria-labelledby={`bet-slider-${bet.id}`}
       value={bet.betPercentage}
-      onChange={(e) => onSliderChange(bet.id, parseFloat(e.target.value))}
-      style={{ width: '100%', display: 'block' }}
+      min={0}
+      max={100}
+      step={0.01}
+      valueLabelDisplay="auto"
+      onChange={(e, val) => onSliderChange(bet.id, val)}
     />
     <Box sx={{ textAlign: 'center', mt: 1 }}>{bet.betPercentage.toFixed(2)}%</Box>
   </Box>
 </Box>
 
   );
-}
+});
 
 const BankrollChart = ({ bankrollHistory, optimalBankrollHistory }) => {
   const data = {
@@ -224,19 +223,17 @@ const BankrollChart = ({ bankrollHistory, optimalBankrollHistory }) => {
 };
 
 function App() {
-  const bankroll = useRef(1000);
-  const opponentBankroll = useRef(1000);
+  // Track bankrolls in state so the UI updates automatically
+  const [bankroll, setBankroll] = useState(1000);
+  const [opponentBankroll, setOpponentBankroll] = useState(1000);
   const [bankrollHistory, setBankrollHistory] = useState([{x: 0, y: 1000}]);
   const [optimalBankrollHistory, setOptimalBankrollHistory] = useState([{x: 0, y: 1000}]);
-
 
   const betCount = useRef(0);
 
   const [growthUI, setGrowthUI] = useState(0);
   const [betCountUI, setBetCountUI] = useState(0);
   const [payoutUI, setPayoutUI] = useState(0);
-  const [bankrollUI, setBankrollUI] = useState(1000);
-  const [optimalBankrollUI, setOptimalBankrollUI] = useState(1000);
   const [messageUI, setMessageUI] = useState("Good Luck!");
   const [probabilityUI, setProbabilityUI] = useState(0.5);
   const [gameState, setGameState] = useState("showBet");
@@ -253,11 +250,13 @@ function App() {
 
   const [bets, setBets] = useState([]);
 
-  const handleSliderChange = (id, newPercentage) => {
-    setBets(bets.map(bet =>
-      bet.id === id ? { ...bet, betPercentage: newPercentage } : bet
-    ));
-  };
+  const handleSliderChange = useCallback((id, newPercentage) => {
+    setBets(prevBets =>
+      prevBets.map(bet =>
+        bet.id === id ? { ...bet, betPercentage: newPercentage } : bet
+      )
+    );
+  }, []);
 
   useEffect(() => {
     init().then(() => {
@@ -278,134 +277,146 @@ function App() {
     }
   };
 
-  const resolveBets = () => {
-      let total = 0.0
-      let opponentTotal = 0.0
-      for (let i = 0; i < bets.length; i++) {
-          let result = Math.random();
-          bets[i].result = result;
-          if (result < bets[i].probability) {
-              bets[i].state = 'win';
-              total += bets[i].betPercentage * (bets[i].payout - 1) / 100.0; // divide by 100 to be compatible with slider
-              opponentTotal += bets[i].optimalSize * (bets[i].payout - 1);
-          } else {
-              bets[i].state = 'lose';
-              total -= bets[i].betPercentage / 100.0; //divide by 100 to be compatible with slider
-              opponentTotal -= bets[i].optimalSize;
-          }
+  const resolveBets = useCallback(() => {
+    let total = 0.0;
+    let opponentTotal = 0.0;
+
+    const newBets = bets.map(bet => {
+      const result = Math.random();
+      const win = result < bet.probability;
+      const state = win ? 'win' : 'lose';
+
+      if (win) {
+        total += (bet.betPercentage * (bet.payout - 1)) / 100.0;
+        opponentTotal += bet.optimalSize * (bet.payout - 1);
+      } else {
+        total -= bet.betPercentage / 100.0;
+        opponentTotal -= bet.optimalSize;
       }
-      let msg = `Your Bankroll: ${(bankroll.current * total >= 0 ? "+" : "")}${(bankroll.current * total).toFixed(2)} `;
-      msg += `Kelly Bankroll: ${(opponentBankroll.current * opponentTotal >= 0 ? "+" : "")}${(opponentBankroll.current * opponentTotal).toFixed(2)}`;
-      setMessageUI(msg);
-      bankroll.current *= 1 + total;
-      opponentBankroll.current *= 1 + opponentTotal;
-      setBankrollHistory(prevHistory => [...prevHistory, {x: prevHistory.length, y: bankroll.current}]);
-      setOptimalBankrollHistory(prevHistory => [...prevHistory, {x: prevHistory.length, y: opponentBankroll.current}]);
-  }
+
+      return { ...bet, result, state };
+    });
+
+    setBets(newBets);
+
+    const userDelta = bankroll * total;
+    const kellyDelta = opponentBankroll * opponentTotal;
+
+    setMessageUI(
+      `Your Bankroll: ${(userDelta >= 0 ? '+' : '')}${userDelta.toFixed(2)} ` +
+      `Kelly Bankroll: ${(kellyDelta >= 0 ? '+' : '')}${kellyDelta.toFixed(2)}`
+    );
+
+    const newBankroll = bankroll + userDelta;
+    const newOpponent = opponentBankroll + kellyDelta;
+    setBankroll(newBankroll);
+    setOpponentBankroll(newOpponent);
+
+    setBankrollHistory(prev => [...prev, { x: prev.length, y: newBankroll }]);
+    setOptimalBankrollHistory(prev => [...prev, { x: prev.length, y: newOpponent }]);
+  }, [bets, bankroll, opponentBankroll]);
 
   const handleBet = () => {
-      if (gameState === "showBet") {
-          let totalBetPercentage = bets.reduce((total, bet) => {
-              return total + bet.betPercentage;
-            }, 0);
-          if (totalBetPercentage < 100) {
-              resolveBets();
-              setGameState("showNextBet");
-          } else {
-              setMessageUI("You bet more than your bankroll! Reduce your bets.");
-          }
+    if (gameState === "showBet") {
+      let totalBetPercentage = bets.reduce((total, bet) => {
+        return total + bet.betPercentage;
+      }, 0);
+      if (totalBetPercentage <= 100) {
+        resolveBets();
+        setGameState("showNextBet");
       } else {
-          generateBets();
-          setBankrollUI(bankroll.current);
-          setOptimalBankrollUI(opponentBankroll.current);
-          setGameState("showBet");
-          setMessageUI("Good luck!");
-          setBetCountUI(betCountUI + 1);
+        setMessageUI("You bet more than your bankroll! Reduce your bets.");
       }
+    } else {
+      generateBets();
+      setGameState("showBet");
+      setMessageUI("Good luck!");
+      setBetCountUI(betCountUI + 1);
+    }
   };
 
   const generateOneBet = () => {
-      //let p = getRandomFloat(0.05, 0.95);
-      let p = getRandomFloat(minProbability / 100.0, maxProbability / 100.0);
-      let implied = 1 / p;
-      let b = getRandomFloat(implied, implied + (implied - 1) * 2);
-      return {probability: p, payout: b, betPercentage: 0.0, id: null, optimalSize: null, state: "neutral", result: null}
+    //let p = getRandomFloat(0.05, 0.95);
+    let p = getRandomFloat(minProbability / 100.0, maxProbability / 100.0);
+    let implied = 1 / p;
+    let b = getRandomFloat(implied, implied + (implied - 1) * 2);
+    return {probability: p, payout: b, betPercentage: 0.0, id: null, optimalSize: null, state: "neutral", result: null}
   }
 
   const generateBets = () => {
-      let min = minBets;
-      let max = maxBets;
-      let N = Math.floor(Math.random() * (max - min + 1)) + min;
-      let result = [];
-      let forKelly = [];
-      for (let i = 0; i < N; i++) {
-          let bet = generateOneBet();
-          bet.id = i;
-          result.push(bet);
-          forKelly.push(bet.probability);
-          forKelly.push(bet.payout - 1);
-      }
-      // calculate optimal
-      let k = multi_kelly(forKelly);
-      for (let i = 0; i < N; i++) {
-          result[i].optimalSize = k.proportions[i];
-      }
-      result.sort((a, b) => b.probability - a.probability);
-      setGrowthUI(k.growth);
-
-      setBets(result);
-  }
-
-  const handleAddBet = () => {
-      let forKelly = [];
-      let result = [];
-      for (let i = 0; i < bets.length; i++) {
-          result.push(bets[i]);
-          forKelly.push(bets[i].probability);
-          forKelly.push(bets[i].payout - 1);
-      }
+    let min = minBets;
+    let max = maxBets;
+    let N = Math.floor(Math.random() * (max - min + 1)) + min;
+    let result = [];
+    let forKelly = [];
+    for (let i = 0; i < N; i++) {
       let bet = generateOneBet();
-      bet.id = result.length;
+      bet.id = i;
       result.push(bet);
       forKelly.push(bet.probability);
       forKelly.push(bet.payout - 1);
-      let k = multi_kelly(forKelly);
-      for (let i = 0; i < result.length; i++) {
-          result[i].optimalSize = k.proportions[i];
-      }
-      setGrowthUI(k.growth);
-      setBets(result);
+    }
+    // calculate optimal
+    let k = multi_kelly(forKelly);
+    for (let i = 0; i < N; i++) {
+      result[i].optimalSize = k.proportions[i];
+    }
+    result.sort((a, b) => b.probability - a.probability);
+    setGrowthUI(k.growth);
+
+    setBets(result);
+  }
+
+  const handleAddBet = () => {
+    let forKelly = [];
+    let result = [];
+    for (let i = 0; i < bets.length; i++) {
+      result.push(bets[i]);
+      forKelly.push(bets[i].probability);
+      forKelly.push(bets[i].payout - 1);
+    }
+    let bet = generateOneBet();
+    bet.id = result.length;
+    result.push(bet);
+    forKelly.push(bet.probability);
+    forKelly.push(bet.payout - 1);
+    let k = multi_kelly(forKelly);
+    for (let i = 0; i < result.length; i++) {
+      result[i].optimalSize = k.proportions[i];
+    }
+    setGrowthUI(k.growth);
+    setBets(result);
   };
 
   const handleMinBetsChange = () => {
     if (minBets < 1) {
-        setMinBets(1);
+      setMinBets(1);
     } else if (minBets > maxBets) {
-        setMinBets(maxBets);
+      setMinBets(maxBets);
     }
   };
 
   const handleMaxBetsChange = () => {
     if (maxBets > 15) {
-        setMaxBets(15);
+      setMaxBets(15);
     } else if (maxBets < minBets) {
-        setMaxBets(minBets);
+      setMaxBets(minBets);
     }
   };
 
   const handleMinProbabilityChange = () => {
     if (minProbability < 1) {
-        setMinProbability(1);
+      setMinProbability(1);
     } else if (minProbability > maxProbability) {
-        setMinProbability(maxProbability);
+      setMinProbability(maxProbability);
     }
   };
 
   const handleMaxProbabilityChange = () => {
     if (maxProbability > 100) {
-        setMaxProbability(100);
+      setMaxProbability(100);
     } else if (maxProbability < minProbability) {
-        setMaxProbability(minProbability);
+      setMaxProbability(minProbability);
     }
   };
 
@@ -422,7 +433,7 @@ function App() {
                 Your Bankroll
               </Typography>
               <Typography variant="body1">
-                ${bankrollUI.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${bankroll.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Typography>
             </CardContent>
           </Card>
@@ -435,7 +446,7 @@ function App() {
                 Optimal Bankroll
               </Typography>
               <Typography variant="body1">
-                ${optimalBankrollUI.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${opponentBankroll.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Typography>
             </CardContent>
           </Card>
